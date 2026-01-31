@@ -2,8 +2,8 @@
 // PhotoEnglish - API Service Layer
 // =============================================================================
 
-// Use mock API in development if real API is not available
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || import.meta.env.DEV;
+// Use mock API only when explicitly enabled
+const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 const API_BASE_URL = 'https://photo-english-learn-api-gateway.zeabur.app';
 
@@ -354,10 +354,10 @@ export const photoApi = {
 
   /**
    * Get user's photos
-   * GET /api/photos
+   * GET /photos
    */
   getPhotos: () =>
-    api.get<import('@/types').Photo[]>('/api/photos'),
+    api.get<import('@/types').Photo[]>('/photos'),
 
   /**
    * Save words from photo to vocabulary library
@@ -374,7 +374,7 @@ export const photoApi = {
 export const vocabularyApi = {
   /**
    * Get user's vocabulary library
-   * GET /api/vocabulary
+   * GET /vocabulary
    */
   getWords: (_params?: {
     search?: string;
@@ -383,7 +383,7 @@ export const vocabularyApi = {
     page?: number;
     limit?: number;
   }) =>
-    api.get<{ words: import('@/types').Word[]; total: number }>('/api/vocabulary'),
+    api.get<{ words: import('@/types').Word[]; total: number }>('/vocabulary'),
 
   /**
    * Get word details
@@ -478,10 +478,10 @@ export const reviewApi = {
 export const progressApi = {
   /**
    * Get user's learning progress
-   * GET /api/progress
+   * GET /progress
    */
   get: () =>
-    api.get<import('@/types').Progress>('/api/progress'),
+    api.get<import('@/types').Progress>('/progress'),
 };
 
 // -----------------------------------------------------------------------------
