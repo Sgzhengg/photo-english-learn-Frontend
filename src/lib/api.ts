@@ -5,7 +5,7 @@
 // Use mock API in development if real API is not available
 const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true' || import.meta.env.DEV;
 
-const API_BASE_URL = 'https://photo-english-learn-api-gateway.zeabur.app:8080';
+const API_BASE_URL = 'https://photo-english-learn-api-gateway.zeabur.app';
 
 // Import mock API functions (setMockUserId is no longer needed)
 import { mockAuthApi, mockUserApi } from './mock-api';
@@ -115,7 +115,7 @@ class ApiClient {
     if (!refreshToken) return false;
 
     try {
-      const response = await fetch(`${this.baseURL}/api/auth/refresh`, {
+      const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ export const api = new ApiClient(API_BASE_URL);
 export const authApi = {
   /**
    * User login
-   * POST /api/auth/login
+   * POST /auth/login
    */
   login: async (emailOrPhone: string, password: string, keepLoggedIn: boolean) => {
     if (USE_MOCK_API) {
@@ -195,7 +195,7 @@ export const authApi = {
       // User is saved automatically in mockApi.login()
       return { success: true, data: result };
     }
-    return api.post<AuthTokens & { user: import('@/types').User }>('/api/auth/login', {
+    return api.post<AuthTokens & { user: import('@/types').User }>('/auth/login', {
       emailOrPhone,
       password,
       keepLoggedIn,
@@ -204,7 +204,7 @@ export const authApi = {
 
   /**
    * User registration
-   * POST /api/auth/register
+   * POST /auth/register
    */
   register: async (data: {
     emailOrPhone: string;
@@ -216,48 +216,48 @@ export const authApi = {
       // User is saved automatically in mockApi.register()
       return { success: true, data: result };
     }
-    return api.post<AuthTokens & { user: import('@/types').User }>('/api/auth/register', data);
+    return api.post<AuthTokens & { user: import('@/types').User }>('/auth/register', data);
   },
 
   /**
    * Send verification code (development mode: accepts any 6-digit code)
-   * POST /api/auth/send-code
+   * POST /auth/send-code
    */
   sendVerificationCode: async (emailOrPhone: string) => {
     if (USE_MOCK_API) {
       const result = await mockAuthApi.sendVerificationCode(emailOrPhone);
       return { success: true, data: result };
     }
-    return api.post<{ message: string }>('/api/auth/send-code', { emailOrPhone });
+    return api.post<{ message: string }>('/auth/send-code', { emailOrPhone });
   },
 
   /**
    * Refresh access token
-   * POST /api/auth/refresh
+   * POST /auth/refresh
    */
   refreshToken: async (refreshToken: string) => {
     if (USE_MOCK_API) {
       const result = await mockAuthApi.refreshToken(refreshToken);
       return { success: true, data: result };
     }
-    return api.post<AuthTokens>('/api/auth/refresh', { refreshToken });
+    return api.post<AuthTokens>('/auth/refresh', { refreshToken });
   },
 
   /**
    * Get current user info
-   * GET /api/auth/me
+   * GET /auth/me
    */
   getCurrentUser: async () => {
     if (USE_MOCK_API) {
       const result = await mockAuthApi.getCurrentUser();
       return { success: true, data: result };
     }
-    return api.get<import('@/types').User>('/api/auth/me');
+    return api.get<import('@/types').User>('/auth/me');
   },
 
   /**
    * Reset password
-   * POST /api/auth/reset-password
+   * POST /auth/reset-password
    */
   resetPassword: async (data: {
     emailOrPhone: string;
@@ -268,19 +268,19 @@ export const authApi = {
       const result = await mockAuthApi.resetPassword(data.emailOrPhone, data.verificationCode, data.newPassword);
       return { success: true, data: result };
     }
-    return api.post<{ message: string }>('/api/auth/reset-password', data);
+    return api.post<{ message: string }>('/auth/reset-password', data);
   },
 
   /**
    * Logout
-   * POST /api/auth/logout
+   * POST /auth/logout
    */
   logout: async () => {
     if (USE_MOCK_API) {
       const result = await mockAuthApi.logout();
       return { success: true, data: result };
     }
-    return api.post<{ message: string }>('/api/auth/logout');
+    return api.post<{ message: string }>('/auth/logout');
   },
 };
 
@@ -291,7 +291,7 @@ export const authApi = {
 export const userApi = {
   /**
    * Update user preferences (after onboarding)
-   * PATCH /api/user/preferences
+   * PATCH /user/preferences
    */
   updatePreferences: async (preferences: {
     englishLevel: 'beginner' | 'intermediate' | 'advanced';
@@ -301,12 +301,12 @@ export const userApi = {
       const result = await mockUserApi.updatePreferences(preferences);
       return { success: true, data: result };
     }
-    return api.patch<import('@/types').User>('/api/user/preferences', preferences);
+    return api.patch<import('@/types').User>('/user/preferences', preferences);
   },
 
   /**
    * Update user profile
-   * PATCH /api/user/profile
+   * PATCH /user/profile
    */
   updateProfile: async (data: {
     nickname?: string;
@@ -316,12 +316,12 @@ export const userApi = {
       const result = await mockUserApi.updateProfile(data);
       return { success: true, data: result };
     }
-    return api.patch<import('@/types').User>('/api/user/profile', data);
+    return api.patch<import('@/types').User>('/user/profile', data);
   },
 
   /**
    * Change password
-   * POST /api/user/change-password
+   * POST /user/change-password
    */
   changePassword: async (data: {
     currentPassword: string;
@@ -331,7 +331,7 @@ export const userApi = {
       const result = await mockUserApi.changePassword(data.currentPassword, data.newPassword);
       return { success: true, data: result };
     }
-    return api.post<{ message: string }>('/api/user/change-password', data);
+    return api.post<{ message: string }>('/user/change-password', data);
   },
 };
 
@@ -342,7 +342,7 @@ export const userApi = {
 export const photoApi = {
   /**
    * Upload photo for OCR recognition
-   * POST /api/photo/recognize
+   * POST /photo/recognize
    */
   recognize: (formData: FormData) =>
     api.post<{
@@ -350,7 +350,7 @@ export const photoApi = {
       words: import('@/types').RecognizedWord[];
       sceneDescription: string;
       sceneTranslation: string;
-    }>('/api/photo/recognize', formData),
+    }>('/photo/recognize', formData),
 
   /**
    * Get user's photos
@@ -361,10 +361,10 @@ export const photoApi = {
 
   /**
    * Save words from photo to vocabulary library
-   * POST /api/photo/:photoId/save-words
+   * POST /photo/:photoId/save-words
    */
   saveWords: (photoId: string, wordIds: string[]) =>
-    api.post<import('@/types').Word[]>(`/api/photo/${photoId}/save-words`, { wordIds }),
+    api.post<import('@/types').Word[]>(`/photo/${photoId}/save-words`, { wordIds }),
 };
 
 // -----------------------------------------------------------------------------
@@ -387,38 +387,38 @@ export const vocabularyApi = {
 
   /**
    * Get word details
-   * GET /api/vocabulary/:wordId
+   * GET /vocabulary/:wordId
    */
   getWord: (wordId: string) =>
-    api.get<import('@/types').Word>(`/api/vocabulary/${wordId}`),
+    api.get<import('@/types').Word>(`/vocabulary/${wordId}`),
 
   /**
    * Create tag
-   * POST /api/vocabulary/tags
+   * POST /vocabulary/tags
    */
   createTag: (name: string, color?: string) =>
-    api.post<import('@/types').Tag>('/api/vocabulary/tags', { name, color }),
+    api.post<import('@/types').Tag>('/vocabulary/tags', { name, color }),
 
   /**
    * Get user's tags
-   * GET /api/vocabulary/tags
+   * GET /vocabulary/tags
    */
   getTags: () =>
-    api.get<import('@/types').Tag[]>('/api/vocabulary/tags'),
+    api.get<import('@/types').Tag[]>('/vocabulary/tags'),
 
   /**
    * Update word tags
-   * PATCH /api/vocabulary/:wordId/tags
+   * PATCH /vocabulary/:wordId/tags
    */
   updateWordTags: (wordId: string, tags: string[]) =>
-    api.patch<import('@/types').Word>(`/api/vocabulary/${wordId}/tags`, { tags }),
+    api.patch<import('@/types').Word>(`/vocabulary/${wordId}/tags`, { tags }),
 
   /**
    * Delete word
-   * DELETE /api/vocabulary/:wordId
+   * DELETE /vocabulary/:wordId
    */
   deleteWord: (wordId: string) =>
-    api.delete<{ message: string }>(`/api/vocabulary/${wordId}`),
+    api.delete<{ message: string }>(`/vocabulary/${wordId}`),
 };
 
 // -----------------------------------------------------------------------------
@@ -428,27 +428,27 @@ export const vocabularyApi = {
 export const practiceApi = {
   /**
    * Generate practice exercises
-   * POST /api/practice/generate
+   * POST /practice/generate
    */
   generate: (type: 'fill-blank' | 'translation' | 'scene-sentence', count: number = 10) =>
-    api.post<import('@/types').Practice[]>('/api/practice/generate', { type, count }),
+    api.post<import('@/types').Practice[]>('/practice/generate', { type, count }),
 
   /**
    * Submit practice answer
-   * POST /api/practice/:practiceId/submit
+   * POST /practice/:practiceId/submit
    */
   submit: (practiceId: string, userAnswer: string, timeSpent?: number) =>
-    api.post<import('@/types').Practice>(`/api/practice/${practiceId}/submit`, {
+    api.post<import('@/types').Practice>(`/practice/${practiceId}/submit`, {
       userAnswer,
       timeSpent,
     }),
 
   /**
    * Get practice history
-   * GET /api/practice/history
+   * GET /practice/history
    */
   getHistory: (_params?: { limit?: number }) =>
-    api.get<import('@/types').Practice[]>('/api/practice/history'),
+    api.get<import('@/types').Practice[]>('/practice/history'),
 };
 
 // -----------------------------------------------------------------------------
@@ -458,17 +458,17 @@ export const practiceApi = {
 export const reviewApi = {
   /**
    * Get words due for review
-   * GET /api/review/due
+   * GET /review/due
    */
   getDueReviews: () =>
-    api.get<{ word: import('@/types').Word; nextReviewAt: string }[]>('/api/review/due'),
+    api.get<{ word: import('@/types').Word; nextReviewAt: string }[]>('/review/due'),
 
   /**
    * Submit review answer
-   * POST /api/review/:wordId/submit
+   * POST /review/:wordId/submit
    */
   submit: (wordId: string, userAnswer: string) =>
-    api.post<import('@/types').Review>(`/api/review/${wordId}/submit`, { userAnswer }),
+    api.post<import('@/types').Review>(`/review/${wordId}/submit`, { userAnswer }),
 };
 
 // -----------------------------------------------------------------------------
@@ -513,7 +513,7 @@ export interface AsrEvaluateResult {
 export const asrApi = {
   /**
    * Recognize audio from file
-   * POST /api/asr/recognize
+   * POST /asr/recognize
    */
   recognize: async (audioFile: File, language: string = 'en-US', engine: string = 'groq-whisper') => {
     const formData = new FormData();
@@ -522,7 +522,7 @@ export const asrApi = {
     formData.append('engine', engine);
 
     const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/api/asr/recognize`, {
+    const response = await fetch(`${API_BASE_URL}/asr/recognize`, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       body: formData,
@@ -539,7 +539,7 @@ export const asrApi = {
 
   /**
    * Recognize audio from URL
-   * POST /api/asr/recognize-url
+   * POST /asr/recognize-url
    */
   recognizeFromUrl: async (audioUrl: string, language: string = 'en-US', engine: string = 'groq-whisper') => {
     const formData = new FormData();
@@ -548,7 +548,7 @@ export const asrApi = {
     formData.append('engine', engine);
 
     const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/api/asr/recognize-url`, {
+    const response = await fetch(`${API_BASE_URL}/asr/recognize-url`, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       body: formData,
@@ -565,7 +565,7 @@ export const asrApi = {
 
   /**
    * Evaluate pronunciation against target text
-   * POST /api/asr/evaluate-pronunciation
+   * POST /asr/evaluate-pronunciation
    */
   evaluatePronunciation: async (audioFile: File, targetText: string, language: string = 'en-US') => {
     const formData = new FormData();
@@ -574,7 +574,7 @@ export const asrApi = {
     formData.append('language', language);
 
     const token = localStorage.getItem('access_token');
-    const response = await fetch(`${API_BASE_URL}/api/asr/evaluate-pronunciation`, {
+    const response = await fetch(`${API_BASE_URL}/asr/evaluate-pronunciation`, {
       method: 'POST',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       body: formData,
@@ -591,15 +591,15 @@ export const asrApi = {
 
   /**
    * Get available recognition engines
-   * GET /api/asr/engines
+   * GET /asr/engines
    */
   getEngines: async () => {
-    return api.get<{ engines: Array<{ id: string; name: string; description: string; available: boolean }> }>('/api/asr/engines');
+    return api.get<{ engines: Array<{ id: string; name: string; description: string; available: boolean }> }>('/asr/engines');
   },
 
   /**
    * Get ASR service configuration
-   * GET /api/asr/config
+   * GET /asr/config
    */
   getConfig: async () => {
     return api.get<{
@@ -609,6 +609,6 @@ export const asrApi = {
       default_language: string;
       max_audio_size: number;
       supported_formats: string[];
-    }>('/api/asr/config');
+    }>('/asr/config');
   },
 };
