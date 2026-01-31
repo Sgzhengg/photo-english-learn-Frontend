@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Play, Pause, SkipForward, Mic, Square, Star, Volume2, Loader2 } from 'lucide-react'
+import { Mic, Square, Star, Volume2, Loader2 } from 'lucide-react'
 import type { Photo, RecognizedWord } from '../types'
 import { asrApi, type PronunciationScore } from '@/lib/api'
 
@@ -358,48 +358,6 @@ export function SceneSentence({
                 评估中...
               </button>
             )}
-
-            {/* 播放控制（原有的播放朗读功能） */}
-            <div className="flex items-center gap-2 ml-auto">
-              {!isPlaying ? (
-                <button
-                  onClick={() => onPlay?.(photo.id)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-medium transition-all duration-200"
-                  style={{ fontFamily: 'Inter, sans-serif' }}
-                >
-                  <Play className="w-4 h-4" fill="currentColor" />
-                  朗读
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => onPause?.()}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-medium transition-all duration-200"
-                    style={{ fontFamily: 'Inter, sans-serif' }}
-                  >
-                    <Pause className="w-4 h-4" fill="currentColor" />
-                    暂停
-                  </button>
-                  <button
-                    onClick={() => onStop?.()}
-                    className="flex items-center gap-2 px-3 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300 rounded-xl font-medium transition-all duration-200"
-                    style={{ fontFamily: 'Inter, sans-serif' }}
-                  >
-                    <SkipForward className="w-3 h-3" />
-                  </button>
-                </>
-              )}
-
-              {/* 播放进度指示 */}
-              {isPlaying && (
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
-                  <span className="text-sm text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
-                    朗读中...
-                  </span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
