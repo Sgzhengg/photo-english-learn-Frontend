@@ -69,11 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Login failed');
     }
 
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { access_token, user: userData } = response.data;
 
-    // Store tokens
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    // Store tokens (backend uses access_token, not refreshToken)
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('refresh_token', access_token); // Use access_token as refresh_token for now
 
     setUser(userData);
   };
@@ -85,11 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(response.error || 'Registration failed');
     }
 
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { access_token, user: userData } = response.data;
 
-    // Store tokens
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
+    // Store tokens (backend uses access_token, not refreshToken)
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('refresh_token', access_token); // Use access_token as refresh_token for now
 
     setUser(userData);
   };

@@ -22,9 +22,9 @@ export interface ApiResponse<T> {
 }
 
 export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number;
+  access_token: string;
+  token_type: string;
+  user: import('@/types').User;
 }
 
 // -----------------------------------------------------------------------------
@@ -94,41 +94,62 @@ class ApiClient {
   }
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
-    const data = await response.json().catch(() => ({}));
+    const json = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       return {
         success: false,
-        error: data.message || data.error || 'Request failed',
+        error: json.message || json.detail || json.error || 'Request failed',
       };
     }
 
+    // Handle unified response format: {code, message, data}
+    if ('code' in json && 'data' in json) {
+      if (json.code === 0) {
+        return {
+          success: true,
+          data: json.data as T,
+          message: json.message,
+        };
+      } else {
+        return {
+          success: false,
+          error: json.message || 'Request failed',
+        };
+      }
+    }
+
+    // Handle direct response format (for compatibility)
     return {
       success: true,
-      data: data as T,
-      message: data.message,
+      data: json as T,
+      message: json.message,
     };
   }
 
   private async refreshToken(): Promise<boolean> {
-    const refreshToken = localStorage.getItem('refresh_token');
-    if (!refreshToken) return false;
+    const currentToken = localStorage.getItem('access_token');
+    if (!currentToken) return false;
 
     try {
       const response = await fetch(`${this.baseURL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentToken}`,
         },
-        body: JSON.stringify({ refreshToken }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('access_token', data.accessToken);
-        localStorage.setItem('refresh_token', data.refreshToken);
-        localStorage.setItem('expires_at', data.expiresAt.toString());
-        return true;
+        const json = await response.json();
+
+        // Handle unified response format
+        if (json.code === 0 && json.data) {
+          localStorage.setItem('access_token', json.data.access_token);
+          // Note: backend doesn't return refresh_token currently, using access_token for both
+          localStorage.setItem('refresh_token', json.data.access_token);
+          return true;
+        }
       }
     } catch (error) {
       console.error('Token refresh failed:', error);
