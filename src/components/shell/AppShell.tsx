@@ -11,6 +11,13 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Handle logout with navigation
+  const handleLogout = async () => {
+    await logout();
+    // Navigate to login page after logout
+    navigate('/login');
+  };
+
   // Define navigation items
   const navigationItems = [
     {
@@ -53,7 +60,10 @@ export function AppShell() {
         // Navigate using React Router
         navigate(href);
       }}
-      onLogout={logout}
+      onLogout={handleLogout}
+      onSettings={() => {
+        navigate('/app/settings');
+      }}
     >
       <Outlet />
     </AppShellUI>

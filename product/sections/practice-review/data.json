@@ -256,5 +256,86 @@
       { "date": "2025-01-25", "accuracy": 0.9 },
       { "date": "2025-01-26", "accuracy": 0.8 }
     ]
-  }
+  },
+  "sampleQuestions": [
+    {
+      "id": "q-001",
+      "type": "fill-blank",
+      "question": "I'm working on my _____ at the coffee shop.",
+      "wordId": "word-001",
+      "correctAnswer": "laptop",
+      "hint": "笔记本电脑",
+      "options": []
+    },
+    {
+      "id": "q-002",
+      "type": "multiple-choice",
+      "question": "What does 'monitor' mean?",
+      "wordId": "word-007",
+      "correctAnswer": "显示器",
+      "hint": "显示器 (Computer display screen)",
+      "options": [
+        { "id": "opt-1", "text": "显示器", "isCorrect": true },
+        { "id": "opt-2", "text": "键盘", "isCorrect": false },
+        { "id": "opt-3", "text": "鼠标", "isCorrect": false },
+        { "id": "opt-4", "text": "打印机", "isCorrect": false }
+      ]
+    },
+    {
+      "id": "q-003",
+      "type": "dictation",
+      "question": "Type the word you hear: /ˈlæptɒp/",
+      "wordId": "word-001",
+      "correctAnswer": "laptop",
+      "hint": "笔记本电脑",
+      "options": [],
+      "phonetic": "/ˈlæptɒp/",
+      "audioUrl": "/audio/laptop.mp3"
+    },
+    {
+      "id": "q-004",
+      "type": "fill-blank",
+      "question": "Please _____ the report by tomorrow.",
+      "wordId": "word-015",
+      "correctAnswer": "submit",
+      "hint": "提交",
+      "options": []
+    },
+    {
+      "id": "q-005",
+      "type": "multiple-choice",
+      "question": "Choose the correct meaning: 'keyboard'",
+      "wordId": "word-008",
+      "correctAnswer": "键盘",
+      "hint": "键盘 (Typing device)",
+      "options": [
+        { "id": "opt-1", "text": "键盘", "isCorrect": true },
+        { "id": "opt-2", "text": "鼠标", "isCorrect": false },
+        { "id": "opt-3", "text": "屏幕", "isCorrect": false },
+        { "id": "opt-4", "text": "主机", "isCorrect": false }
+      ]
+    }
+  ],
+  "wrongAnswersQueue": [
+    {
+      "questionId": "wrong-001",
+      "wordId": "word-012",
+      "word": "database",
+      "phonetic": "/ˈdeɪtəbeɪs/",
+      "definition": "数据库",
+      "userWrongAnswer": "databace",
+      "addedAt": "2025-01-25T14:30:00Z",
+      "reviewCount": 2
+    },
+    {
+      "questionId": "wrong-002",
+      "wordId": "word-020",
+      "word": "algorithm",
+      "phonetic": "/ˈælɡərɪðəm/",
+      "definition": "算法",
+      "userWrongAnswer": "algoritm",
+      "addedAt": "2025-01-26T09:15:00Z",
+      "reviewCount": 3
+    }
+  ]
 }

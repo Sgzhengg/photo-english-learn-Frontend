@@ -1,5 +1,7 @@
-import { Play, Pause, SkipForward } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Play, Pause, SkipForward, Mic, Square, Star, Volume2, Loader2 } from 'lucide-react'
 import type { Photo, RecognizedWord } from '../types'
+import { asrApi, type PronunciationScore } from '@/lib/api'
 
 interface SceneSentenceProps {
   photo: Photo
@@ -43,19 +45,163 @@ export function SceneSentence({
   onPause,
   onStop,
 }: SceneSentenceProps) {
-  if (!photo.sceneDescription) {
-    return null
+  const [isRecording, setIsRecording] = useState(false)
+  const [isPlayingOriginal, setIsPlayingOriginal] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
+  const [recordedText, setRecordedText] = useState('')
+  const [score, setScore] = useState<PronunciationScore | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 清理录音定时器
+  useEffect(() => {
+    return () => {
+      if (recordingTimeoutRef.current) {
+        clearTimeout(recordingTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // 播放原句
+  const handlePlayOriginal = () => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(photo.sceneDescription)
+      utterance.lang = 'en-US'
+      utterance.rate = 0.9
+
+      utterance.onend = () => {
+        setIsPlayingOriginal(false)
+      }
+
+      setIsPlayingOriginal(true)
+      window.speechSynthesis.speak(utterance)
+    }
+  }
+
+  // 开始录音
+  const handleStartRecording = async () => {
+    setError(null)
+    setRecordedText('')
+    setScore(null)
+
+    try {
+      // 请求麦克风权限
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+      // 创建 MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      })
+
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      // 收集音频数据
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      // 录音停止时的处理
+      mediaRecorder.onstop = async () => {
+        setIsRecording(false)
+
+        // 停止所有音频轨道
+        stream.getTracks().forEach(track => track.stop())
+
+        // 如果有录音数据，发送到后端进行评分
+        if (audioChunksRef.current.length > 0) {
+          await evaluatePronunciation()
+        }
+      }
+
+      // 开始录音
+      mediaRecorder.start()
+      setIsRecording(true)
+
+      // 30秒后自动停止录音
+      recordingTimeoutRef.current = setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop()
+        }
+      }, 30000)
+
+    } catch (err) {
+      console.error('Error accessing microphone:', err)
+      setError('无法访问麦克风。请确保已授予麦克风权限。')
+      setIsRecording(false)
+    }
+  }
+
+  // 停止录音
+  const handleStopRecording = () => {
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current)
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+    }
+  }
+
+  // 评估发音
+  const evaluatePronunciation = async () => {
+    setIsEvaluating(true)
+    setError(null)
+
+    try {
+      // 创建音频 Blob
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+      const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' })
+
+      // 调用后端 API 进行发音评估
+      const result = await asrApi.evaluatePronunciation(
+        audioFile,
+        photo.sceneDescription,
+        'en-US'
+      )
+
+      if (result.success && result.data) {
+        setRecordedText(result.data.recorded_text)
+        setScore(result.data.score)
+      } else {
+        setError(result.error || '发音评估失败，请重试。')
+      }
+    } catch (err) {
+      console.error('Error evaluating pronunciation:', err)
+      setError('发音评估失败，请检查网络连接后重试。')
+    } finally {
+      setIsEvaluating(false)
+    }
   }
 
   const words = splitSentenceIntoWords(photo.sceneDescription, photo.recognizedWords, currentWordIndex)
+
+  if (!photo.sceneDescription) {
+    return null
+  }
 
   return (
     <div className="bg-white dark:bg-slate-800/50 rounded-2xl border-2 border-slate-200 dark:border-slate-700 overflow-hidden">
       {/* 标题栏 */}
       <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-          场景描述
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+            场景描述
+          </h3>
+          {score && (
+            <div className="flex items-center gap-1 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+              <Star className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-amber-600" />
+              <span className="text-sm font-bold text-amber-700 dark:text-amber-400" style={{ fontFamily: 'Inter, sans-serif' }}>
+                {score.overall}分
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 句子内容 */}
@@ -90,47 +236,171 @@ export function SceneSentence({
           {photo.sceneTranslation}
         </p>
 
-        {/* 播放控制 */}
-        <div className="flex items-center gap-3 pt-2">
-          {!isPlaying ? (
+        {/* 错误提示 */}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
+        {/* 跟读录音区域 */}
+        {recordedText && (
+          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
+            <p className="text-xs text-indigo-600 dark:text-indigo-400 mb-2 font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+              您的跟读：
+            </p>
+            <p className="text-base text-slate-900 dark:text-slate-100 mb-3" style={{ fontFamily: 'Inter, sans-serif' }}>
+              "{recordedText}"
+            </p>
+
+            {score && (
+              <div className="space-y-2">
+                {/* 评分详情 */}
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="text-center">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">准确度</p>
+                    <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{score.accuracy}%</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">流利度</p>
+                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{score.fluency}%</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">完整度</p>
+                    <p className="text-lg font-bold text-lime-600 dark:text-lime-400">{score.completeness}%</p>
+                  </div>
+                </div>
+
+                {/* 总分和反馈 */}
+                <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-lg p-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{score.feedback}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setScore(null)
+                      setRecordedText('')
+                      setError(null)
+                    }}
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    再练一次
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 录音状态指示 */}
+        {isRecording && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+            <span className="text-sm text-red-700 dark:text-red-400 font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+              正在录音中...
+            </span>
+          </div>
+        )}
+
+        {/* 评估中状态指示 */}
+        {isEvaluating && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+            <Loader2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400 animate-spin" />
+            <span className="text-sm text-indigo-700 dark:text-indigo-400 font-medium" style={{ fontFamily: 'Inter, sans-serif' }}>
+              正在评估发音...
+            </span>
+          </div>
+        )}
+
+        {/* 控制按钮 */}
+        <div className="flex flex-col gap-3">
+          {/* 第一行：播放和录音按钮 */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* 播放原句 */}
             <button
-              onClick={() => onPlay?.(photo.id)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/20 active:scale-95"
+              onClick={handlePlayOriginal}
+              disabled={isPlayingOriginal || isRecording || isEvaluating}
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ fontFamily: 'Inter, sans-serif' }}
             >
-              <Play className="w-5 h-5" fill="currentColor" />
-              播放朗读
+              <Volume2 className="w-4 h-4" />
+              {isPlayingOriginal ? '播放中...' : '听原句'}
             </button>
-          ) : (
-            <>
-              <button
-                onClick={() => onPause?.()}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/20 active:scale-95"
-                style={{ fontFamily: 'Inter, sans-serif' }}
-              >
-                <Pause className="w-5 h-5" fill="currentColor" />
-                暂停
-              </button>
-              <button
-                onClick={() => onStop?.()}
-                className="flex items-center gap-2 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300 rounded-xl font-medium transition-all duration-200 active:scale-95"
-                style={{ fontFamily: 'Inter, sans-serif' }}
-              >
-                <SkipForward className="w-4 h-4" />
-                停止
-              </button>
-            </>
-          )}
 
-          {/* 播放进度指示 */}
-          {isPlaying && (
+            {/* 录音按钮 */}
+            {!isRecording && !isEvaluating ? (
+              <button
+                onClick={handleStartRecording}
+                disabled={isPlayingOriginal}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg hover:shadow-purple-200 dark:hover:shadow-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                <Mic className="w-4 h-4" />
+                开始跟读
+              </button>
+            ) : isRecording ? (
+              <button
+                onClick={handleStopRecording}
+                className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg hover:shadow-red-200 dark:hover:shadow-red-900/20 active:scale-95"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                <Square className="w-4 h-4" fill="currentColor" />
+                停止录音
+              </button>
+            ) : (
+              <button
+                disabled
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-300 text-slate-500 rounded-xl font-medium cursor-not-allowed"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                <Loader2 className="w-4 h-4 animate-spin" />
+                评估中...
+              </button>
+            )}
+
+            {/* 播放控制（原有的播放朗读功能） */}
             <div className="flex items-center gap-2 ml-auto">
-              <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
-              <span className="text-sm text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
-                正在朗读...
-              </span>
+              {!isPlaying ? (
+                <button
+                  onClick={() => onPlay?.(photo.id)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-medium transition-all duration-200"
+                  style={{ fontFamily: 'Inter, sans-serif' }}
+                >
+                  <Play className="w-4 h-4" fill="currentColor" />
+                  朗读
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => onPause?.()}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 rounded-xl font-medium transition-all duration-200"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    <Pause className="w-4 h-4" fill="currentColor" />
+                    暂停
+                  </button>
+                  <button
+                    onClick={() => onStop?.()}
+                    className="flex items-center gap-2 px-3 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-300 rounded-xl font-medium transition-all duration-200"
+                    style={{ fontFamily: 'Inter, sans-serif' }}
+                  >
+                    <SkipForward className="w-3 h-3" />
+                  </button>
+                </>
+              )}
+
+              {/* 播放进度指示 */}
+              {isPlaying && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-lime-400 rounded-full animate-pulse" />
+                  <span className="text-sm text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    朗读中...
+                  </span>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

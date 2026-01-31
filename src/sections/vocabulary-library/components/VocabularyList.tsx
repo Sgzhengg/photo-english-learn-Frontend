@@ -1,4 +1,4 @@
-import { Search, List, Grid, Volume2, Eye, Play, Trash2 } from 'lucide-react'
+import { Search, List, Grid, Volume2, Eye, Play, Trash2, Plus, X } from 'lucide-react'
 import type { Word, Tag } from '@/../product/sections/vocabulary-library/types'
 
 interface VocabularyListProps {
@@ -8,55 +8,142 @@ interface VocabularyListProps {
   sortBy: string
   searchQuery: string
   selectedTags: string[]
+  isCreatingTag?: boolean
+  newTagName?: string
   onViewModeChange?: (mode: 'list' | 'grid') => void
   onSortChange?: (option: string) => void
   onSearchChange?: (query: string) => void
   onTagToggle?: (tagId: string) => void
+  onCreateTag?: () => void
+  onNewTagNameChange?: (name: string) => void
+  onSubmitNewTag?: () => void
+  onCancelNewTag?: () => void
+  onDeleteTag?: (tagId: string) => void
   onPlayPronunciation?: (wordId: string) => void
   onViewDetails?: (wordId: string) => void
   onStartPractice?: (wordId: string) => void
   onDeleteWord?: (wordId: string) => void
 }
 
-// 掌握程度标签组件
+// 掌握程度指示点组件
 function MasteryBadge({ level }: { level: string }) {
   const configMap = {
-    learning: { label: '学习中', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-    familiar: { label: '熟悉', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-    mastered: { label: '已掌握', color: 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-400' },
+    learning: { color: 'bg-red-500', label: '学习中' },
+    familiar: { label: '熟悉', color: 'bg-yellow-500' },
+    mastered: { label: '已掌握', color: 'bg-green-500' },
   }
   const config = configMap[level as keyof typeof configMap] || configMap.learning
 
   return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`} style={{ fontFamily: 'Inter, sans-serif' }}>
-      {config.label}
-    </span>
+    <div
+      className={`w-2 h-2 rounded-full ${config.color}`}
+      title={config.label}
+    />
   )
 }
 
 // 标签筛选器组件
-function TagFilter({ tags, selectedTags, onTagToggle }: { tags: Tag[], selectedTags: string[], onTagToggle?: (tagId: string) => void }) {
+function TagFilter({
+  tags,
+  selectedTags,
+  isCreatingTag,
+  newTagName,
+  onTagToggle,
+  onCreateTag,
+  onNewTagNameChange,
+  onSubmitNewTag,
+  onCancelNewTag,
+  onDeleteTag,
+}: {
+  tags: Tag[]
+  selectedTags: string[]
+  isCreatingTag?: boolean
+  newTagName?: string
+  onTagToggle?: (tagId: string) => void
+  onCreateTag?: () => void
+  onNewTagNameChange?: (name: string) => void
+  onSubmitNewTag?: () => void
+  onCancelNewTag?: () => void
+  onDeleteTag?: (tagId: string) => void
+}) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {tags.map((tag) => {
-        const isSelected = selectedTags.includes(tag.id)
-        return (
-          <button
-            key={tag.id}
-            onClick={() => onTagToggle?.(tag.id)}
-            className={`
-              px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200
-              ${isSelected
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+    <div className="space-y-3">
+      {/* 现有标签 */}
+      <div className="flex flex-wrap gap-2">
+        {tags.map((tag) => {
+          const isSelected = selectedTags.includes(tag.id)
+          return (
+            <div
+              key={tag.id}
+              className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
+                isSelected
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+              }`}
+              style={{ fontFamily: 'Inter, sans-serif' }}
+            >
+              <button
+                onClick={() => onTagToggle?.(tag.id)}
+                className="flex-1 text-left"
+              >
+                {tag.name}
+              </button>
+              <button
+                onClick={() => onDeleteTag?.(tag.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 hover:text-red-600 dark:hover:text-red-400"
+                aria-label="删除标签"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* 创建新标签 */}
+      {isCreatingTag ? (
+        <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
+          <input
+            type="text"
+            placeholder="输入标签名称..."
+            value={newTagName}
+            onChange={(e) => onNewTagNameChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onSubmitNewTag?.()
+              } else if (e.key === 'Escape') {
+                onCancelNewTag?.()
               }
-            `}
+            }}
+            className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            style={{ fontFamily: 'Inter, sans-serif' }}
+            autoFocus
+          />
+          <button
+            onClick={onSubmitNewTag}
+            disabled={!newTagName?.trim()}
+            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors"
             style={{ fontFamily: 'Inter, sans-serif' }}
           >
-            {tag.name}
+            添加
           </button>
-        )
-      })}
+          <button
+            onClick={onCancelNewTag}
+            className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onCreateTag}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200"
+          style={{ fontFamily: 'Inter, sans-serif' }}
+        >
+          <Plus className="w-3 h-3" />
+          创建标签
+        </button>
+      )}
     </div>
   )
 }
@@ -138,70 +225,51 @@ function WordCard({ word, onPlayPronunciation, onViewDetails, onStartPractice, o
   onDeleteWord?: (wordId: string) => void
 }) {
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-5 hover:shadow-lg dark:hover:shadow-black/20 transition-all duration-200">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 p-2.5 hover:shadow-lg dark:hover:shadow-black/20 transition-all duration-200">
       {/* 单词头部 */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate" style={{ fontFamily: 'DM Sans, sans-serif' }}>
             {word.word}
           </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-mono mb-2">
-            {word.phonetic}
-          </p>
           <MasteryBadge level={word.learningRecord.masteryLevel} />
         </div>
         <button
           onClick={() => onPlayPronunciation?.(word.id)}
-          className="p-2.5 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+          className="w-6 h-6 flex items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors shrink-0"
           aria-label="播放发音"
         >
-          <Volume2 className="w-5 h-5" />
+          <Volume2 className="w-3 h-3" />
         </button>
       </div>
 
       {/* 释义 */}
-      <p className="text-slate-700 dark:text-slate-300 text-sm mb-4" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <p className="text-slate-700 dark:text-slate-300 text-[10px] mb-1.5 leading-snug line-clamp-2" style={{ fontFamily: 'Inter, sans-serif' }}>
         {word.definition}
       </p>
 
-      {/* 来源照片 */}
-      {word.sourcePhoto && (
-        <div className="flex items-center gap-2 mb-4 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-          <img
-            src={word.sourcePhoto.thumbnailUrl}
-            alt={word.sourcePhoto.location}
-            className="w-10 h-10 rounded-lg object-cover"
-          />
-          <span className="text-xs text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
-            {word.sourcePhoto.location}
-          </span>
-        </div>
-      )}
-
       {/* 操作按钮 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end gap-1">
         <button
           onClick={() => onViewDetails?.(word.id)}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          className="w-6 h-6 flex items-center justify-center rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+          aria-label="查看详情"
         >
-          <Eye className="w-4 h-4" />
-          详情
+          <Eye className="w-3 h-3" />
         </button>
         <button
           onClick={() => onStartPractice?.(word.id)}
-          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-lime-500 hover:bg-lime-600 text-slate-900 rounded-lg text-sm font-medium transition-colors"
-          style={{ fontFamily: 'Inter, sans-serif' }}
+          className="w-6 h-6 flex items-center justify-center rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-lime-100 dark:hover:bg-lime-900/30 hover:text-lime-600 dark:hover:text-lime-400 transition-colors"
+          aria-label="开始练习"
         >
-          <Play className="w-4 h-4" fill="currentColor" />
-          练习
+          <Play className="w-3 h-3" />
         </button>
         <button
           onClick={() => onDeleteWord?.(word.id)}
-          className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+          className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
           aria-label="删除单词"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-3 h-3" />
         </button>
       </div>
     </div>
@@ -215,10 +283,17 @@ export function VocabularyList({
   sortBy,
   searchQuery,
   selectedTags,
+  isCreatingTag,
+  newTagName,
   onViewModeChange,
   onSortChange,
   onSearchChange,
   onTagToggle,
+  onCreateTag,
+  onNewTagNameChange,
+  onSubmitNewTag,
+  onCancelNewTag,
+  onDeleteTag,
   onPlayPronunciation,
   onViewDetails,
   onStartPractice,
@@ -291,10 +366,26 @@ export function VocabularyList({
 
       {/* 标签筛选 */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
-        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-          标签筛选
-        </h3>
-        <TagFilter tags={tags} selectedTags={selectedTags} onTagToggle={onTagToggle} />
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+            标签筛选
+          </h3>
+          <span className="text-xs text-slate-500 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {tags.length} 个标签
+          </span>
+        </div>
+        <TagFilter
+          tags={tags}
+          selectedTags={selectedTags}
+          isCreatingTag={isCreatingTag}
+          newTagName={newTagName}
+          onTagToggle={onTagToggle}
+          onCreateTag={onCreateTag}
+          onNewTagNameChange={onNewTagNameChange}
+          onSubmitNewTag={onSubmitNewTag}
+          onCancelNewTag={onCancelNewTag}
+          onDeleteTag={onDeleteTag}
+        />
       </div>
 
       {/* 单词列表/网格 */}

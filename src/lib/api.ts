@@ -318,6 +318,21 @@ export const userApi = {
     }
     return api.patch<import('@/types').User>('/api/user/profile', data);
   },
+
+  /**
+   * Change password
+   * POST /api/user/change-password
+   */
+  changePassword: async (data: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    if (USE_MOCK_API) {
+      const result = await mockUserApi.changePassword(data.currentPassword, data.newPassword);
+      return { success: true, data: result };
+    }
+    return api.post<{ message: string }>('/api/user/change-password', data);
+  },
 };
 
 // -----------------------------------------------------------------------------
@@ -467,4 +482,133 @@ export const progressApi = {
    */
   get: () =>
     api.get<import('@/types').Progress>('/api/progress'),
+};
+
+// -----------------------------------------------------------------------------
+// ASR API (Automatic Speech Recognition)
+// -----------------------------------------------------------------------------
+
+export interface AsrRecognitionResult {
+  text: string;
+  confidence: number;
+  engine: string;
+  language: string;
+  duration?: number;
+}
+
+export interface PronunciationScore {
+  overall: number; // 总分 0-100
+  accuracy: number; // 准确度 0-100
+  fluency: number; // 流利度 0-100
+  completeness: number; // 完整度 0-100
+  feedback: string;
+}
+
+export interface AsrEvaluateResult {
+  recorded_text: string;
+  target_text: string;
+  score: PronunciationScore;
+}
+
+export const asrApi = {
+  /**
+   * Recognize audio from file
+   * POST /api/asr/recognize
+   */
+  recognize: async (audioFile: File, language: string = 'en-US', engine: string = 'groq-whisper') => {
+    const formData = new FormData();
+    formData.append('audio_file', audioFile);
+    formData.append('language', language);
+    formData.append('engine', engine);
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/api/asr/recognize`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Recognition failed' }));
+      return { success: false, error: error.message || error.detail || 'Recognition failed' };
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.data as AsrRecognitionResult };
+  },
+
+  /**
+   * Recognize audio from URL
+   * POST /api/asr/recognize-url
+   */
+  recognizeFromUrl: async (audioUrl: string, language: string = 'en-US', engine: string = 'groq-whisper') => {
+    const formData = new FormData();
+    formData.append('audio_url', audioUrl);
+    formData.append('language', language);
+    formData.append('engine', engine);
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/api/asr/recognize-url`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Recognition failed' }));
+      return { success: false, error: error.message || error.detail || 'Recognition failed' };
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.data as AsrRecognitionResult };
+  },
+
+  /**
+   * Evaluate pronunciation against target text
+   * POST /api/asr/evaluate-pronunciation
+   */
+  evaluatePronunciation: async (audioFile: File, targetText: string, language: string = 'en-US') => {
+    const formData = new FormData();
+    formData.append('audio_file', audioFile);
+    formData.append('target_text', targetText);
+    formData.append('language', language);
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/api/asr/evaluate-pronunciation`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Evaluation failed' }));
+      return { success: false, error: error.message || error.detail || 'Evaluation failed' };
+    }
+
+    const data = await response.json();
+    return { success: true, data: data.data as AsrEvaluateResult };
+  },
+
+  /**
+   * Get available recognition engines
+   * GET /api/asr/engines
+   */
+  getEngines: async () => {
+    return api.get<{ engines: Array<{ id: string; name: string; description: string; available: boolean }> }>('/api/asr/engines');
+  },
+
+  /**
+   * Get ASR service configuration
+   * GET /api/asr/config
+   */
+  getConfig: async () => {
+    return api.get<{
+      supported_languages: string[];
+      supported_engines: string[];
+      default_engine: string;
+      default_language: string;
+      max_audio_size: number;
+      supported_formats: string[];
+    }>('/api/asr/config');
+  },
 };

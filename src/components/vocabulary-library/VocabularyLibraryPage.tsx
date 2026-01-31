@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { VocabularyList } from '@/sections/vocabulary-library/components/VocabularyList';
 import { WordDetail } from '@/sections/vocabulary-library/components/WordDetail';
 import vocabularyData from '@/../product/sections/vocabulary-library/data.json';
@@ -11,6 +12,7 @@ import vocabularyData from '@/../product/sections/vocabulary-library/data.json';
 import type { Word, Tag, ViewMode, SortOption } from '@/../product/sections/vocabulary-library/types';
 
 export function VocabularyLibraryPage() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [sortBy, setSortBy] = useState<SortOption>('addedDate');
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,8 +40,10 @@ export function VocabularyLibraryPage() {
 
     // Apply tag filter
     if (selectedTags.length > 0) {
+      // Normalize selected tags by removing 'tag-' prefix for comparison
+      const normalizedSelectedTags = selectedTags.map(tag => tag.replace('tag-', ''));
       result = result.filter(word =>
-        word.tags.some(tag => selectedTags.includes(tag))
+        word.tags.some(tag => normalizedSelectedTags.includes(tag))
       );
     }
 
@@ -88,9 +92,9 @@ export function VocabularyLibraryPage() {
     setSelectedWord(null);
   };
 
-  const handleStartPractice = (_wordId: string) => {
-    // Navigate to practice page
-    window.location.href = '/app/practice';
+  const handleStartPractice = (wordId: string) => {
+    // Navigate to single word practice page
+    navigate(`/app/vocabulary/practice/${wordId}`);
   };
 
   const handleDeleteWord = (wordId: string) => {
@@ -143,7 +147,7 @@ export function VocabularyLibraryPage() {
       {/* Word Detail Modal */}
       {selectedWord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <WordDetail
               word={selectedWord}
               onBack={handleCloseDetail}

@@ -22,8 +22,10 @@ const OnboardingPage = lazy(() => import('@/components/auth/OnboardingPage').the
 
 const PhotoCapturePage = lazy(() => import('@/components/photo-capture/PhotoCapturePage').then(m => ({ default: m.PhotoCapturePage })));
 const VocabularyLibraryPage = lazy(() => import('@/components/vocabulary-library/VocabularyLibraryPage').then(m => ({ default: m.VocabularyLibraryPage })));
+const SingleWordPracticePage = lazy(() => import('@/components/vocabulary-library/SingleWordPracticePage').then(m => ({ default: m.SingleWordPracticePage })));
 const PracticeReviewPage = lazy(() => import('@/components/practice-review/PracticeReviewPage').then(m => ({ default: m.PracticeReviewPage })));
 const ProgressDashboardPage = lazy(() => import('@/components/progress-dashboard/ProgressDashboardPage').then(m => ({ default: m.ProgressDashboardPage })));
+const SettingsPage = lazy(() => import('@/components/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // -----------------------------------------------------------------------------
 // Route Loader - Check authentication
@@ -79,6 +81,10 @@ export const router = createBrowserRouter([
     path: '/progress',
     loader: () => redirect('/app/progress'),
   },
+  {
+    path: '/settings',
+    loader: () => redirect('/app/settings'),
+  },
 
   // =============================================================================
   // Auth Routes (no shell)
@@ -130,6 +136,10 @@ export const router = createBrowserRouter([
         path: 'vocabulary',
         element: <VocabularyLibraryPage />,
       },
+      {
+        path: 'vocabulary/practice/:wordId',
+        element: <SingleWordPracticePage />,
+      },
 
       // Practice & Review
       {
@@ -141,6 +151,12 @@ export const router = createBrowserRouter([
       {
         path: 'progress',
         element: <ProgressDashboardPage />,
+      },
+
+      // Settings
+      {
+        path: 'settings',
+        element: <SettingsPage />,
       },
     ],
   },

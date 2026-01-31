@@ -11,18 +11,19 @@ interface DailyTaskHomeProps {
   onReviewWrongAnswers?: () => void
 }
 
-// 掌握程度标签
+// 掌握程度指示点组件
 function MasteryBadge({ level }: { level: MasteryLevel }) {
   const config = {
-    learning: { label: '学习中', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
-    familiar: { label: '熟悉', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
-    mastered: { label: '已掌握', color: 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-400' },
+    learning: { label: '学习中', color: 'bg-red-500' },
+    familiar: { label: '熟悉', color: 'bg-yellow-500' },
+    mastered: { label: '已掌握', color: 'bg-green-500' },
   }[level]
 
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config.color}`} style={{ fontFamily: 'Inter, sans-serif' }}>
-      {config.label}
-    </span>
+    <div
+      className={`w-2 h-2 rounded-full ${config.color}`}
+      title={config.label}
+    />
   )
 }
 

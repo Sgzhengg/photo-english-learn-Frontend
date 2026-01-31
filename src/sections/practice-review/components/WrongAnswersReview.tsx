@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { RotateCcw, X, Check, Volume2, VolumeX, BookOpen, TrendingUp, CheckCircle2 } from 'lucide-react'
 import type { WrongAnswer } from '@/../product/sections/practice-review/types'
 
@@ -14,6 +14,7 @@ function WrongAnswerCard({ wrongAnswer, onReview }: { wrongAnswer: WrongAnswer; 
   const [userAnswer, setUserAnswer] = useState('')
   const [showFeedback, setShowFeedback] = useState<{ correct: boolean } | null>(null)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   const handleSubmit = () => {
     if (!userAnswer.trim()) return
@@ -31,9 +32,46 @@ function WrongAnswerCard({ wrongAnswer, onReview }: { wrongAnswer: WrongAnswer; 
   }
 
   const handleAudioToggle = () => {
-    setIsPlayingAudio(!isPlayingAudio)
-    // 实际应用中这里会播放 TTS
-    setTimeout(() => setIsPlayingAudio(false), 2000)
+    if (isPlayingAudio) {
+      // Stop audio
+      window.speechSynthesis.cancel()
+      setIsPlayingAudio(false)
+    } else {
+      // Play audio using Web Speech API
+      if (wrongAnswer.word && 'speechSynthesis' in window) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(wrongAnswer.word)
+        utterance.lang = 'en-US'
+        utterance.rate = 0.8
+        utterance.pitch = 1
+        utterance.volume = 1
+
+        utterance.onstart = () => {
+          console.log('Speech started for:', wrongAnswer.word)
+        }
+
+        utterance.onend = () => {
+          console.log('Speech ended for:', wrongAnswer.word)
+          setIsPlayingAudio(false)
+        }
+
+        utterance.onerror = (event) => {
+          console.error('Speech error:', event.error)
+          setIsPlayingAudio(false)
+        }
+
+        speechRef.current = utterance
+
+        // Wait a small delay to ensure voices are loaded
+        setTimeout(() => {
+          window.speechSynthesis.speak(utterance)
+        }, 100)
+
+        setIsPlayingAudio(true)
+      }
+    }
   }
 
   return (

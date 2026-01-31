@@ -276,6 +276,36 @@ export const mockUserApi = {
 
     return userWithoutPassword;
   },
+
+  /**
+   * Mock change password
+   */
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    await delay(800);
+
+    const currentUser = getCurrentUserFromStorage();
+    if (!currentUser) {
+      throw new Error('未登录');
+    }
+
+    const users = getMockUsers();
+    const userIndex = users.findIndex((u) => u.id === currentUser.id);
+
+    if (userIndex === -1) {
+      throw new Error('用户不存在');
+    }
+
+    // Verify current password
+    if (users[userIndex].password !== currentPassword) {
+      throw new Error('当前密码不正确');
+    }
+
+    // Update password
+    users[userIndex].password = newPassword;
+    saveMockUsers(users);
+
+    return { message: '密码修改成功' };
+  },
 };
 
 // -----------------------------------------------------------------------------

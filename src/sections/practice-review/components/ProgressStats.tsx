@@ -22,17 +22,17 @@ function MasteryDistribution({ progressStats }: { progressStats: ProgressStatsTy
       {/* 堆叠进度条 */}
       <div className="h-8 rounded-full overflow-hidden flex mb-4">
         <div
-          className="bg-emerald-500 transition-all duration-500"
+          className="bg-green-500 transition-all duration-500"
           style={{ width: `${masteredPercent}%` }}
           title={`已掌握: ${progressStats.masteredWords}`}
         />
         <div
-          className="bg-blue-500 transition-all duration-500"
+          className="bg-yellow-500 transition-all duration-500"
           style={{ width: `${familiarPercent}%` }}
           title={`熟悉: ${progressStats.familiarWords}`}
         />
         <div
-          className="bg-amber-500 transition-all duration-500"
+          className="bg-red-500 transition-all duration-500"
           style={{ width: `${learningPercent}%` }}
           title={`学习中: ${progressStats.learningWords}`}
         />
@@ -42,7 +42,7 @@ function MasteryDistribution({ progressStats }: { progressStats: ProgressStatsTy
       <div className="grid grid-cols-3 gap-3">
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <div className="w-3 h-3 rounded-full bg-emerald-500" />
+            <div className="w-3 h-3 rounded-full bg-green-500" />
             <span className="text-xs text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
               已掌握
             </span>
@@ -57,7 +57,7 @@ function MasteryDistribution({ progressStats }: { progressStats: ProgressStatsTy
 
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500" />
             <span className="text-xs text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
               熟悉
             </span>
@@ -72,7 +72,7 @@ function MasteryDistribution({ progressStats }: { progressStats: ProgressStatsTy
 
         <div>
           <div className="flex items-center gap-1.5 mb-1">
-            <div className="w-3 h-3 rounded-full bg-amber-500" />
+            <div className="w-3 h-3 rounded-full bg-red-500" />
             <span className="text-xs text-slate-600 dark:text-slate-400" style={{ fontFamily: 'Inter, sans-serif' }}>
               学习中
             </span>

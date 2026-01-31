@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ChevronRight, SkipForward, Volume2, VolumeX, Check, X } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { ChevronRight, SkipForward, Volume2, VolumeX, Check, X, Eye, EyeOff } from 'lucide-react'
 import type { PracticeQuestion } from '@/../product/sections/practice-review/types'
 
 interface PracticeQuestionViewProps {
@@ -35,10 +35,17 @@ export function PracticeQuestionView({
 }: PracticeQuestionViewProps) {
   const [localAnswer, setLocalAnswer] = useState('')
   const [showFeedback, setShowFeedback] = useState<{ correct: boolean; message: string } | null>(null)
+  const [showHint, setShowHint] = useState(false)
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null)
 
   const currentQuestion = questions[currentQuestionIndex]
   const currentAnswer = userAnswers.get(currentQuestion.id) || localAnswer
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100
+
+  // Remove phonetic symbols (text between /.../) from question for dictation type
+  const displayQuestion = currentQuestion.type === 'dictation'
+    ? currentQuestion.question.replace(/\/[^/]+\//g, '').trim()
+    : currentQuestion.question
 
   const handleSubmit = () => {
     if (!currentAnswer.trim()) return
@@ -50,11 +57,14 @@ export function PracticeQuestionView({
       message: isCorrect ? '正确！' : `正确答案：${currentQuestion.correctAnswer}`,
     })
 
-    // 延迟提交，让用户看到反馈
+    // Submit answer immediately - parent will handle the delay and navigation
+    onSubmitAnswer(currentQuestion.id, currentAnswer)
+
+    // Clear feedback and local answer after delay
     setTimeout(() => {
-      onSubmitAnswer(currentQuestion.id, currentAnswer)
       setLocalAnswer('')
       setShowFeedback(null)
+      setShowHint(false) // Reset hint state
     }, 1500)
   }
 
@@ -62,13 +72,52 @@ export function PracticeQuestionView({
     onSkipQuestion(currentQuestion.id)
     setLocalAnswer('')
     setShowFeedback(null)
+    setShowHint(false) // Reset hint state
   }
 
   const handleAudioToggle = () => {
     if (isPlayingAudio) {
+      // Stop audio
+      window.speechSynthesis.cancel()
       onStopAudio()
-    } else if (currentQuestion.audioUrl) {
-      onPlayAudio(currentQuestion.audioUrl)
+    } else {
+      // Play audio using Web Speech API
+      // Use the correct answer as the word to speak
+      const wordToSpeak = currentQuestion.correctAnswer || ''
+
+      if (wordToSpeak && 'speechSynthesis' in window) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(wordToSpeak)
+        utterance.lang = 'en-US'
+        utterance.rate = 0.8  // Slightly slower for dictation
+        utterance.pitch = 1
+        utterance.volume = 1
+
+        utterance.onstart = () => {
+          console.log('Speech started for:', wordToSpeak)
+        }
+
+        utterance.onend = () => {
+          console.log('Speech ended for:', wordToSpeak)
+          onStopAudio()
+        }
+
+        utterance.onerror = (event) => {
+          console.error('Speech error:', event.error)
+          onStopAudio()
+        }
+
+        speechRef.current = utterance
+
+        // Wait a small delay to ensure voices are loaded
+        setTimeout(() => {
+          window.speechSynthesis.speak(utterance)
+        }, 100)
+
+        onPlayAudio(currentQuestion.audioUrl || '')
+      }
     }
   }
 
@@ -103,20 +152,40 @@ export function PracticeQuestionView({
       <div className="flex-1 px-4 py-6 max-w-2xl mx-auto w-full">
         {/* 题目卡片 */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-6">
-          <div className="mb-4">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
-              提示：{currentQuestion.hint}
-            </p>
-            {currentQuestion.type === 'dictation' && currentQuestion.phonetic && (
-              <p className="text-lg text-slate-700 dark:text-slate-300 font-mono mb-3">
-                {currentQuestion.phonetic}
-              </p>
-            )}
-          </div>
-
-          <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 leading-relaxed" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-            {currentQuestion.question}
+          <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-slate-100 leading-relaxed mb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+            {displayQuestion}
           </h2>
+
+          {/* 可展开的提示（适用于所有题型） */}
+          {currentQuestion.hint && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowHint(!showHint)}
+                className="flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                style={{ fontFamily: 'Inter, sans-serif' }}
+              >
+                {showHint ? (
+                  <>
+                    <EyeOff className="w-4 h-4" />
+                    <span>隐藏提示</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    <span>查看提示</span>
+                  </>
+                )}
+              </button>
+
+              {showHint && (
+                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <p className="text-sm text-amber-800 dark:text-amber-300" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    💡 {currentQuestion.hint}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 听写题音频播放按钮 */}
           {currentQuestion.type === 'dictation' && (
@@ -136,7 +205,7 @@ export function PracticeQuestionView({
           {currentQuestion.type === 'multiple-choice' ? (
             /* 选择题选项 */
             <div className="space-y-3">
-              {currentQuestion.options.map((option) => (
+              {currentQuestion.options.map((option, index) => (
                 <button
                   key={option.id}
                   onClick={() => setLocalAnswer(option.text)}
@@ -150,7 +219,7 @@ export function PracticeQuestionView({
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex-shrink-0 w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-sm font-semibold text-slate-600 dark:text-slate-400">
-                      {option.id}
+                      {index + 1}
                     </span>
                     <span className="text-lg">{option.text}</span>
                   </div>
