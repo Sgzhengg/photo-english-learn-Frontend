@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { VocabularyList } from '@/sections/vocabulary-library/components/VocabularyList';
 import { WordDetail } from '@/sections/vocabulary-library/components/WordDetail';
 import { vocabularyApi } from '@/lib/api';
-import { adaptUserWordsToWords } from '@/lib/vocabulary-adapter';
+import { adaptUserWordsToWords, extractUserWordId } from '@/lib/vocabulary-adapter';
 import vocabularyData from '@/../product/sections/vocabulary-library/data.json';
 
 // Use the types from the product design
@@ -144,8 +144,11 @@ export function VocabularyLibraryPage() {
     setIsDeleting(true);
 
     try {
+      // Extract integer ID from the word object
+      const userWordId = extractUserWordId(wordToDelete);
+
       // Call API to delete the word
-      const result = await vocabularyApi.deleteWord(wordToDelete.id);
+      const result = await vocabularyApi.deleteWord(String(userWordId));
 
       if (result.success) {
         // Remove from local state
@@ -160,7 +163,13 @@ export function VocabularyLibraryPage() {
       }
     } catch (error) {
       console.error('Delete word error:', error);
-      alert(`删除失败: ${error instanceof Error ? error.message : '网络错误'}`);
+
+      // Check if this is demo data
+      if (error instanceof Error && error.message === 'demo_data') {
+        alert('无法删除演示数据。请先连接后端API并添加真实的生词记录。');
+      } else {
+        alert(`删除失败: ${error instanceof Error ? error.message : '网络错误'}`);
+      }
     } finally {
       setIsDeleting(false);
     }

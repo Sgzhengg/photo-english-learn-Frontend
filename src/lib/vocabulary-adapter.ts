@@ -19,7 +19,7 @@ export function adaptUserWordToWord(userWord: UserWordResponse): Word {
   const baseWord = userWord.word;
 
   return {
-    id: String(userWord.id), // 使用 UserWord.id（用于删除）
+    id: String(userWord.id), // 使用 UserWord.id（用于删除，保持为字符串）
     word: baseWord?.english_word || '',
     phonetic: baseWord?.phonetic_us || '',
     definition: baseWord?.chinese_meaning || '',
@@ -58,4 +58,25 @@ export function adaptUserWordToWord(userWord: UserWordResponse): Word {
  */
 export function adaptUserWordsToWords(userWords: UserWordResponse[]): Word[] {
   return userWords.map(adaptUserWordToWord);
+}
+
+/**
+ * 从 Word 对象中提取后端需要的整数ID
+ * 用于删除操作
+ *
+ * @param word 前端Word对象
+ * @returns 后端的UserWord.id（整数）
+ * @throws Error 如果ID是模拟数据格式或无法转换为整数
+ */
+export function extractUserWordId(word: Word): number {
+  // 检查是否是模拟数据（格式如 "word-001"）
+  if (word.id.startsWith('word-') || word.id.startsWith('photo-')) {
+    throw new Error('demo_data');
+  }
+
+  const id = parseInt(word.id, 10);
+  if (isNaN(id)) {
+    throw new Error(`Invalid word ID: ${word.id}`);
+  }
+  return id;
 }
