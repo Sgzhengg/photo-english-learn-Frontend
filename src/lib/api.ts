@@ -10,6 +10,9 @@ const API_BASE_URL = 'https://photo-english-learn-api-gateway.zeabur.app';
 // Import mock API functions (setMockUserId is no longer needed)
 import { mockAuthApi, mockUserApi } from './mock-api';
 
+// Import anonymous user management
+import { getAnonymousUserHeaders } from './anonymous-user';
+
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -52,9 +55,15 @@ class ApiClient {
       ...(options.headers as Record<string, string>),
     };
 
+    // Add authorization header if token exists
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+
+    // Add anonymous user ID header (development mode / no auth)
+    // This allows multiple test users to have isolated data
+    const anonHeaders = getAnonymousUserHeaders();
+    Object.assign(headers, anonHeaders);
 
     try {
       const response = await fetch(url, {
