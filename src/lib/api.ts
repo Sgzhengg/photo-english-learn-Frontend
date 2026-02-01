@@ -413,53 +413,50 @@ export const vocabularyApi = {
 };
 
 // -----------------------------------------------------------------------------
-// Practice API (for later milestones)
+// Practice API
 // -----------------------------------------------------------------------------
 
 export const practiceApi = {
   /**
-   * Generate practice exercises
-   * POST /practice/generate
+   * Get review list (words due for review)
+   * GET /practice/review
    */
-  generate: (type: 'fill-blank' | 'translation' | 'scene-sentence', count: number = 10) =>
-    api.post<import('@/types').Practice[]>('/practice/generate', { type, count }),
+  getReviewList: async (limit: number = 20) => {
+    return api.get<any[]>(`/practice/review?limit=${limit}`);
+  },
 
   /**
-   * Submit practice answer
-   * POST /practice/:practiceId/submit
+   * Submit review result
+   * POST /practice/review/{word_id}
    */
-  submit: (practiceId: string, userAnswer: string, timeSpent?: number) =>
-    api.post<import('@/types').Practice>(`/practice/${practiceId}/submit`, {
-      userAnswer,
-      timeSpent,
-    }),
+  submitReview: async (wordId: string, isCorrect: boolean) => {
+    const formData = new FormData();
+    formData.append('is_correct', String(isCorrect));
+
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/practice/review/${wordId}?is_correct=${isCorrect}`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+    });
+
+    const json = await response.json();
+    if (json.code === 0 && json.data) {
+      return { success: true, data: json.data };
+    }
+    return { success: false, error: json.message || 'Failed to submit review' };
+  },
 
   /**
-   * Get practice history
-   * GET /practice/history
+   * Get practice progress
+   * GET /practice/progress
    */
-  getHistory: (_params?: { limit?: number }) =>
-    api.get<import('@/types').Practice[]>('/practice/history'),
-};
-
-// -----------------------------------------------------------------------------
-// Review API (for later milestones)
-// -----------------------------------------------------------------------------
-
-export const reviewApi = {
-  /**
-   * Get words due for review
-   * GET /review/due
-   */
-  getDueReviews: () =>
-    api.get<{ word: import('@/types').Word; nextReviewAt: string }[]>('/review/due'),
-
-  /**
-   * Submit review answer
-   * POST /review/:wordId/submit
-   */
-  submit: (wordId: string, userAnswer: string) =>
-    api.post<import('@/types').Review>(`/review/${wordId}/submit`, { userAnswer }),
+  getProgress: () =>
+    api.get<{
+      pending_review_count: number;
+      total_words_count: number;
+      total_correct: number;
+      total_wrong: number;
+    }>('/practice/progress'),
 };
 
 // -----------------------------------------------------------------------------

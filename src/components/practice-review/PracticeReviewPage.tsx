@@ -2,23 +2,39 @@
 // PhotoEnglish - Practice & Review Page
 // =============================================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DailyTaskHome } from '@/sections/practice-review/components/DailyTaskHome';
 import { ReviewSchedule } from '@/sections/practice-review/components/ReviewSchedule';
 import { WrongAnswersReview } from '@/sections/practice-review/components/WrongAnswersReview';
 import { ProgressStats as ProgressStatsView } from '@/sections/practice-review/components/ProgressStats';
 import { PracticeQuestionView } from '@/sections/practice-review/components/PracticeQuestionView';
 import { PracticeResultSummary } from '@/sections/practice-review/components/PracticeResultSummary';
-import practiceData from '@/../product/sections/practice-review/data.json';
+
+import { practiceApi } from '@/lib/api';
+import {
+  adaptReviewRecordsToDailyTask,
+  adaptReviewRecordToScheduleItem,
+  generatePracticeQuestions,
+  adaptBackendProgressToStats
+} from '@/lib/practice-adapter';
 
 // Use the types from the product design
-import type { DailyTask, ProgressStats, PracticeQuestion } from '@/../product/sections/practice-review/types';
+import type {
+  DailyTask,
+  ProgressStats,
+  PracticeQuestion,
+  ReviewScheduleItem,
+  WrongAnswer
+} from '@/../product/sections/practice-review/types';
 
 type PracticeView = 'home' | 'practice-questions' | 'practice-results' | 'review-schedule' | 'wrong-answers' | 'progress-stats';
 
 export function PracticeReviewPage() {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<PracticeView>('home');
   const [currentWrongIndex, setCurrentWrongIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Practice questions state
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
@@ -27,17 +43,74 @@ export function PracticeReviewPage() {
   const [practiceResult, setPracticeResult] = useState<any | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  // Get data from mock data - use type assertions for JSON data
-  const dailyTask = practiceData.dailyTask as DailyTask;
-  const progressStats = practiceData.progressStats as ProgressStats;
-  const wrongAnswersQueue = practiceData.wrongAnswersQueue as any[];
-  const reviewSchedule = practiceData.reviewSchedule as any[];
-  const sampleQuestions = practiceData.sampleQuestions as PracticeQuestion[];
+  // Data from API
+  const [dailyTask, setDailyTask] = useState<DailyTask | null>(null);
+  const [progressStats, setProgressStats] = useState<ProgressStats | null>(null);
+  const [wrongAnswersQueue, setWrongAnswersQueue] = useState<WrongAnswer[]>([]);
+  const [reviewSchedule, setReviewSchedule] = useState<ReviewScheduleItem[]>([]);
+
+  // Fetch data from API on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+
+        // Fetch review list (words due for review)
+        const reviewResult = await practiceApi.getReviewList(20);
+        if (reviewResult.success && reviewResult.data) {
+          const reviewRecords = reviewResult.data;
+          const today = new Date().toISOString().split('T')[0];
+
+          // Create daily task from review records
+          const task = adaptReviewRecordsToDailyTask(reviewRecords, today);
+          setDailyTask(task);
+
+          // Create review schedule
+          const schedule = reviewRecords.map(adaptReviewRecordToScheduleItem);
+          setReviewSchedule(schedule);
+        } else {
+          console.error('Failed to fetch review list:', reviewResult.error);
+          // Set empty defaults
+          setDailyTask({
+            id: `daily-${today}`,
+            date: today,
+            wordsCount: 0,
+            estimatedMinutes: 0,
+            practiceTypes: [],
+            words: [],
+          });
+        }
+
+        // Fetch progress stats
+        const progressResult = await practiceApi.getProgress();
+        if (progressResult.success && progressResult.data) {
+          const reviewRecords = reviewResult.data || [];
+          const stats = adaptBackendProgressToStats(progressResult.data, reviewRecords);
+          setProgressStats(stats);
+        } else {
+          console.error('Failed to fetch progress:', progressResult.error);
+        }
+
+      } catch (error) {
+        console.error('Error fetching practice data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Event handlers
   const handleStartPractice = () => {
-    // Initialize practice questions
-    setQuestions(sampleQuestions.slice(0, 10)); // Take first 10 questions
+    if (!dailyTask || dailyTask.words.length === 0) {
+      alert('暂无需要复习的单词');
+      return;
+    }
+
+    // Generate practice questions from words
+    const generatedQuestions = generatePracticeQuestions(dailyTask.words);
+    setQuestions(generatedQuestions);
     setCurrentQuestionIndex(0);
     setUserAnswers(new Map());
     setPracticeResult(null);
@@ -81,6 +154,8 @@ export function PracticeReviewPage() {
   };
 
   const handleCompletePractice = () => {
+    if (!dailyTask) return;
+
     // Calculate results
     const correctCount = Array.from(userAnswers.entries()).filter(([questionId, answer]) => {
       const question = questions.find(q => q.id === questionId);
@@ -136,7 +211,7 @@ export function PracticeReviewPage() {
   };
 
   const handleReviewWrongAnswers = () => {
-    setCurrentIndex(0);
+    setCurrentWrongIndex(0);
     setCurrentView('wrong-answers');
   };
 
@@ -149,7 +224,7 @@ export function PracticeReviewPage() {
     setCurrentView('home');
   };
 
-  const handleReviewWrongAnswer = (_wordId: string, correct: boolean) => {
+  const handleReviewWrongAnswer = async (_wordId: string, correct: boolean) => {
     // Move to next wrong answer
     if (correct && currentWrongIndex < wrongAnswersQueue.length - 1) {
       setCurrentWrongIndex(currentWrongIndex + 1);
@@ -160,9 +235,17 @@ export function PracticeReviewPage() {
     setCurrentWrongIndex(index);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-white dark:bg-slate-900">
+        <div className="text-slate-600 dark:text-slate-400">加载中...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900">
-      {currentView === 'home' && (
+      {currentView === 'home' && dailyTask && progressStats && (
         <DailyTaskHome
           dailyTask={dailyTask}
           progressStats={progressStats}
@@ -212,7 +295,7 @@ export function PracticeReviewPage() {
         />
       )}
 
-      {currentView === 'progress-stats' && (
+      {currentView === 'progress-stats' && progressStats && (
         <ProgressStatsView
           progressStats={progressStats}
           onBackToHome={handleBackToHome}
