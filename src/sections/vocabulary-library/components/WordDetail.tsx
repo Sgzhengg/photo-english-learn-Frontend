@@ -1,4 +1,5 @@
-import { Volume2, ArrowLeft, BookOpen, TrendingUp, Calendar, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Volume2, ArrowLeft, BookOpen, TrendingUp, Calendar, Trash2, Mic, Play } from 'lucide-react'
 import type { Word } from '@/../product/sections/vocabulary-library/types'
 
 interface WordDetailProps {
@@ -18,12 +19,58 @@ export function WordDetail({
   onStartPractice,
   onDeleteWord,
 }: WordDetailProps) {
+  // 录音状态
+  const [recordingStates, setRecordingStates] = useState<Record<number, boolean>>({})
+
   // 掌握程度的颜色和标签
   const masteryConfig = {
     learning: { label: '学习中', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
     familiar: { label: '熟悉', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
     mastered: { label: '已掌握', color: 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-400' },
   }[word.learningRecord.masteryLevel]
+
+  // 播放例句发音
+  const handlePlayExample = (sentence: string) => {
+    const utterance = new SpeechSynthesisUtterance(sentence)
+    utterance.lang = 'en-US'
+    utterance.rate = 0.9
+    window.speechSynthesis.speak(utterance)
+  }
+
+  // 开始跟读
+  const handleStartRecording = async (index: number) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      setRecordingStates(prev => ({ ...prev, [index]: true }))
+
+      // TODO: 实现录音和ASR评估逻辑
+      // 这里可以调用 asrApi.evaluatePronunciation()
+      alert('录音功能开发中...\n\n实际应用中，这里会：\n1. 录制您的发音\n2. 调用 ASR API 评估\n3. 显示评分和反馈')
+
+      // 模拟录音结束
+      setTimeout(() => {
+        setRecordingStates(prev => ({ ...prev, [index]: false }))
+        stream.getTracks().forEach(track => track.stop())
+      }, 2000)
+    } catch (error) {
+      console.error('Error accessing microphone:', error)
+      alert('无法访问麦克风，请检查权限设置')
+    }
+  }
+
+  // 检查图片是否可用
+  const isImageAvailable = (url: string) => {
+    // 检查是否是示例图片路径
+    if (url.startsWith('/sample-images/') || url.startsWith('/audio/')) {
+      return false
+    }
+    // 检查是否是 base64 数据
+    if (url.startsWith('data:image/')) {
+      return true
+    }
+    // 其他情况（如外部URL）暂时认为不可用
+    return false
+  }
 
   return (
     <div className="space-y-6 px-4 pb-6 max-w-2xl mx-auto">
@@ -172,11 +219,22 @@ export function WordDetail({
             </h3>
           </div>
           <div className="p-4 flex items-center gap-4">
-            <img
-              src={word.sourcePhoto.thumbnailUrl}
-              alt={word.sourcePhoto.location}
-              className="w-20 h-20 rounded-xl object-cover border-2 border-slate-200 dark:border-slate-700"
-            />
+            {isImageAvailable(word.sourcePhoto.thumbnailUrl) ? (
+              // 显示真实图片
+              <img
+                src={word.sourcePhoto.thumbnailUrl}
+                alt={word.sourcePhoto.location}
+                className="w-20 h-20 rounded-xl object-cover border-2 border-slate-200 dark:border-slate-700"
+              />
+            ) : (
+              // 显示占位图
+              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                <svg className="w-8 h-8 text-indigo-400 dark:text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            )}
             <div className="flex-1">
               <p className="font-medium text-slate-900 dark:text-slate-100" style={{ fontFamily: 'Inter, sans-serif' }}>
                 {word.sourcePhoto.location}
@@ -200,10 +258,36 @@ export function WordDetail({
           <div className="divide-y divide-slate-200 dark:divide-slate-700">
             {word.examples.map((example, index) => (
               <div key={index} className="p-5">
-                <p className="text-slate-900 dark:text-slate-100 text-base leading-relaxed mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
-                  {example.sentence}
-                </p>
-                <p className="text-slate-600 dark:text-slate-400 text-sm" style={{ fontFamily: 'Inter, sans-serif' }}>
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <p className="text-slate-900 dark:text-slate-100 text-base leading-relaxed flex-1" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    {example.sentence}
+                  </p>
+                  {/* 播放和跟读按钮 */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handlePlayExample(example.sentence)}
+                      className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                      aria-label="播放例句"
+                      title="播放发音"
+                    >
+                      <Play className="w-4 h-4" fill="currentColor" />
+                    </button>
+                    <button
+                      onClick={() => handleStartRecording(index)}
+                      disabled={recordingStates[index]}
+                      className={`p-2 rounded-lg transition-colors ${
+                        recordingStates[index]
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 animate-pulse'
+                          : 'bg-lime-100 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 hover:bg-lime-200 dark:hover:bg-lime-900/50'
+                      }`}
+                      aria-label="跟读练习"
+                      title={recordingStates[index] ? '录音中...' : '跟读练习'}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>
                   {example.translation}
                 </p>
                 {example.fromPhoto && (

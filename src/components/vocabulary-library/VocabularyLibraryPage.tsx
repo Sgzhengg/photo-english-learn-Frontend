@@ -6,6 +6,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { VocabularyList } from '@/sections/vocabulary-library/components/VocabularyList';
 import { WordDetail } from '@/sections/vocabulary-library/components/WordDetail';
+import { vocabularyApi } from '@/lib/api';
 import vocabularyData from '@/../product/sections/vocabulary-library/data.json';
 
 // Use the types from the product design
@@ -20,9 +21,11 @@ export function VocabularyLibraryPage() {
   const [selectedWord, setSelectedWord] = useState<Word | null>(null);
   const [wordToDelete, setWordToDelete] = useState<Word | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Get words and tags from mock data - use type assertions for JSON data
-  const words = vocabularyData.words as Word[];
+  // TODO: Replace with API call: const { data } = await vocabularyApi.getWords();
+  const [words, setWords] = useState<Word[]>(vocabularyData.words as Word[]);
   const tags = vocabularyData.tags as Tag[];
 
   // Filter and sort words
@@ -105,12 +108,31 @@ export function VocabularyLibraryPage() {
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (wordToDelete) {
-      // In a real app, would call API to delete
-      // For now, just close the dialog
-      setShowDeleteConfirm(false);
-      setWordToDelete(null);
+  const handleConfirmDelete = async () => {
+    if (!wordToDelete) return;
+
+    setIsDeleting(true);
+
+    try {
+      // Call API to delete the word
+      const result = await vocabularyApi.deleteWord(wordToDelete.id);
+
+      if (result.success) {
+        // Remove from local state
+        setWords(prevWords => prevWords.filter(w => w.id !== wordToDelete.id));
+
+        // Close the dialog
+        setShowDeleteConfirm(false);
+        setWordToDelete(null);
+      } else {
+        // Show error alert
+        alert(`删除失败: ${result.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('Delete word error:', error);
+      alert(`删除失败: ${error instanceof Error ? error.message : '网络错误'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -171,17 +193,29 @@ export function VocabularyLibraryPage() {
             <div className="flex gap-3 justify-end">
               <button
                 onClick={handleCancelDelete}
-                className="px-5 py-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl font-medium transition-colors"
+                disabled={isDeleting}
+                className="px-5 py-2.5 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
                 取消
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
+                disabled={isDeleting}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                删除
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    删除中...
+                  </>
+                ) : (
+                  '删除'
+                )}
               </button>
             </div>
           </div>
