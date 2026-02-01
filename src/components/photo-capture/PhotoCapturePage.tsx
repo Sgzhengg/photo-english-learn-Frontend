@@ -6,65 +6,11 @@ import { useState, useRef } from 'react';
 import { Camera } from 'lucide-react';
 import { PhotoCaptureResult } from '@/sections/photo-capture/components/PhotoCaptureResult';
 import type { Photo } from '@/sections/photo-capture/types';
-
-// Mock data for demonstration
-const mockPhotos: Photo[] = [
-  {
-    id: 'photo-001',
-    userId: 'mock-user-001',
-    imageUrl: '/sample-images/coffee-shop.jpg',
-    thumbnailUrl: '/sample-images/coffee-shop-thumb.jpg',
-    capturedAt: new Date().toISOString(),
-    location: '咖啡厅',
-    status: 'completed',
-    recognizedWords: [
-      {
-        id: 'word-001',
-        word: 'laptop',
-        phonetic: '/ˈlæptɒp/',
-        definition: '笔记本电脑',
-        pronunciationUrl: '/audio/laptop.mp3',
-        isSaved: false,
-        positionInSentence: 3,
-      },
-      {
-        id: 'word-002',
-        word: 'coffee',
-        phonetic: '/ˈkɒfi/',
-        definition: '咖啡',
-        pronunciationUrl: '/audio/coffee.mp3',
-        isSaved: false,
-        positionInSentence: 6,
-      },
-      {
-        id: 'word-003',
-        word: 'cup',
-        phonetic: '/kʌp/',
-        definition: '杯子',
-        pronunciationUrl: '/audio/cup.mp3',
-        isSaved: false,
-        positionInSentence: 7,
-      },
-      {
-        id: 'word-004',
-        word: 'menu',
-        phonetic: '/ˈmenjuː/',
-        definition: '菜单',
-        pronunciationUrl: '/audio/menu.mp3',
-        isSaved: false,
-        positionInSentence: -1,
-      },
-    ],
-    sceneDescription: 'A person is working on their laptop while enjoying a fresh cup of coffee.',
-    sceneTranslation: '一个人正在用笔记本电脑工作，同时享受着一杯新鲜冲泡的咖啡。',
-  },
-];
+import { photoApi } from '@/lib/api';
 
 export function PhotoCapturePage() {
   const [currentPhoto, setCurrentPhoto] = useState<Photo | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Handle file selection
@@ -79,18 +25,50 @@ export function PhotoCapturePage() {
     setIsCapturing(true);
     const imageUrl = URL.createObjectURL(file);
 
-    // Simulate OCR processing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Call backend OCR API
+      const formData = new FormData();
+      formData.append('file', file);
 
-    // Use mock data (in real app, would call OCR API)
-    const mockPhoto = { ...mockPhotos[0] };
-    mockPhoto.id = `photo-${Date.now()}`;
-    mockPhoto.imageUrl = imageUrl;
-    mockPhoto.thumbnailUrl = imageUrl;
-    mockPhoto.capturedAt = new Date().toISOString();
+      const response = await photoApi.recognize(formData);
 
-    setCurrentPhoto(mockPhoto);
-    setIsCapturing(false);
+      if (response.success && response.data) {
+        // Convert backend response to Photo format
+        const recognizedPhoto: Photo = {
+          id: response.data.photo.id,
+          userId: response.data.photo.userId,
+          imageUrl: imageUrl, // Use local blob URL for display
+          thumbnailUrl: imageUrl,
+          capturedAt: response.data.photo.capturedAt,
+          location: '识别成功',
+          status: 'completed',
+          recognizedWords: response.data.words.map((word: any, index: number) => ({
+            id: word.id,
+            word: word.word,
+            phonetic: word.phonetic || '',
+            definition: word.definition || '',
+            pronunciationUrl: word.pronunciationUrl || '',
+            isSaved: word.isSaved || false,
+            positionInSentence: index,
+          })),
+          sceneDescription: response.data.sceneDescription || '',
+          sceneTranslation: response.data.sceneTranslation || '',
+        };
+
+        setCurrentPhoto(recognizedPhoto);
+      } else {
+        // Handle error
+        console.error('OCR recognition failed:', response.error);
+        alert('图片识别失败: ' + (response.error || '未知错误'));
+        setCurrentPhoto(null);
+      }
+    } catch (error) {
+      console.error('OCR recognition error:', error);
+      alert('图片识别出错: ' + (error instanceof Error ? error.message : '未知错误'));
+      setCurrentPhoto(null);
+    } finally {
+      setIsCapturing(false);
+    }
   };
 
   // Handle word pronunciation (Web Speech API)
@@ -129,67 +107,6 @@ export function PhotoCapturePage() {
         word.id === wordId ? { ...word, isSaved: false } : word
       ),
     });
-  };
-
-  // Handle play scene (TTS with word highlighting)
-  const handlePlayScene = () => {
-    if (!currentPhoto) return;
-
-    const words = currentPhoto.sceneDescription.split(' ');
-    const sentence = currentPhoto.sceneDescription;
-    let currentIndex = 0;
-    setIsPlaying(true);
-    setCurrentWordIndex(0);
-
-    // Calculate average word duration based on sentence length
-    const avgWordDuration = Math.max(300, 60000 / (words.length * 2));
-
-    // Highlight words while speaking the complete sentence
-    const highlightNextWord = () => {
-      if (currentIndex >= words.length) {
-        setTimeout(() => {
-          setIsPlaying(false);
-          setCurrentWordIndex(0);
-        }, 500);
-        return;
-      }
-
-      setCurrentWordIndex(currentIndex);
-      currentIndex++;
-      setTimeout(highlightNextWord, avgWordDuration);
-    };
-
-    // Speak the complete sentence naturally
-    const utterance = new SpeechSynthesisUtterance(sentence);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setCurrentWordIndex(0);
-    };
-
-    utterance.onerror = () => {
-      setIsPlaying(false);
-      setCurrentWordIndex(0);
-    };
-
-    window.speechSynthesis.speak(utterance);
-    highlightNextWord();
-  };
-
-  // Handle pause scene
-  const handlePauseScene = () => {
-    window.speechSynthesis.cancel();
-    setIsPlaying(false);
-  };
-
-  // Handle stop scene
-  const handleStopScene = () => {
-    window.speechSynthesis.cancel();
-    setIsPlaying(false);
-    setCurrentWordIndex(0);
   };
 
   return (
@@ -262,15 +179,12 @@ export function PhotoCapturePage() {
         <PhotoCaptureResult
           currentPhoto={currentPhoto}
           isCapturing={isCapturing}
-          currentWordIndex={currentWordIndex}
-          isPlaying={isPlaying}
+          currentWordIndex={0}
+          isPlaying={false}
           onCapture={handleCapture}
           onPlayWordPronunciation={handlePlayWordPronunciation}
           onSaveWord={handleSaveWord}
           onUnsaveWord={handleUnsaveWord}
-          onPlayScene={handlePlayScene}
-          onPauseScene={handlePauseScene}
-          onStopScene={handleStopScene}
         />
       )}
     </div>

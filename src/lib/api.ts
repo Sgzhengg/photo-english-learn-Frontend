@@ -365,13 +365,22 @@ export const photoApi = {
    * Upload photo for OCR recognition
    * POST /photo/recognize
    */
-  recognize: (formData: FormData) =>
-    api.post<{
-      photo: import('@/types').Photo;
-      words: import('@/types').RecognizedWord[];
-      sceneDescription: string;
-      sceneTranslation: string;
-    }>('/photo/recognize', formData),
+  recognize: async (formData: FormData) => {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch(`${API_BASE_URL}/photo/recognize`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData, // Don't set Content-Type, let browser set it with boundary
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Recognition failed' }));
+      return { success: false, error: error.message || error.detail || 'Recognition failed' };
+    }
+
+    const json = await response.json();
+    return { success: true, data: json.data };
+  },
 
   /**
    * Get user's photos

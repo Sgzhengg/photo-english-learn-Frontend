@@ -29,7 +29,6 @@ export function SingleWordPracticePage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [showFeedback, setShowFeedback] = useState<{ correct: boolean; message: string } | null>(null);
-  const [completedCount, setCompletedCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -130,7 +129,6 @@ export function SingleWordPracticePage() {
     if (isCorrect) {
       setCorrectCount(prev => prev + 1);
     }
-    setCompletedCount(prev => prev + 1);
 
     // 自动进入下一题
     setTimeout(() => {
@@ -150,7 +148,6 @@ export function SingleWordPracticePage() {
       setUserAnswer('');
       setShowFeedback(null);
       setShowHint(false); // 重置提示状态
-      setCompletedCount(prev => prev + 1);
     }
   };
 
@@ -160,7 +157,6 @@ export function SingleWordPracticePage() {
     setUserAnswer('');
     setShowFeedback(null);
     setShowHint(false); // 重置提示状态
-    setCompletedCount(0);
     setCorrectCount(0);
   };
 

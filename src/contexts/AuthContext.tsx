@@ -66,10 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(emailOrPhone, password, keepLoggedIn);
 
     if (!response.success || !response.data) {
-      throw new Error(response.error || 'Login failed');
+      throw new Error((response as any).error || 'Login failed');
     }
 
-    const { access_token, user: userData } = response.data;
+    // Type assertion to handle backend response format
+    const data = response.data as any;
+    const { access_token, user: userData } = data;
 
     // Store tokens (backend uses access_token, not refreshToken)
     localStorage.setItem('access_token', access_token);
@@ -82,10 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.register({ emailOrPhone, verificationCode, password });
 
     if (!response.success || !response.data) {
-      throw new Error(response.error || 'Registration failed');
+      throw new Error((response as any).error || 'Registration failed');
     }
 
-    const { access_token, user: userData } = response.data;
+    // Type assertion to handle backend response format
+    const data = response.data as any;
+    const { access_token, user: userData } = data;
 
     // Store tokens (backend uses access_token, not refreshToken)
     localStorage.setItem('access_token', access_token);

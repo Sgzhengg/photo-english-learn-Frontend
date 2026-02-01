@@ -65,10 +65,4 @@ export interface PhotoCaptureProps {
   onSaveWord?: (wordId: string) => void
   /** 当用户点击取消保存单词按钮时调用 */
   onUnsaveWord?: (wordId: string) => void
-  /** 当用户点击播放场景句子按钮时调用 */
-  onPlayScene?: (photoId: string) => void
-  /** 当用户点击暂停场景句子按钮时调用 */
-  onPauseScene?: () => void
-  /** 当用户点击停止场景句子按钮时调用 */
-  onStopScene?: () => void
 }

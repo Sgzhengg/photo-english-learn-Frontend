@@ -19,9 +19,6 @@ export default function PhotoCaptureResultPreview() {
       onPlayWordPronunciation={(wordId) => console.log('Play pronunciation:', wordId)}
       onSaveWord={(wordId) => console.log('Save word:', wordId)}
       onUnsaveWord={(wordId) => console.log('Unsave word:', wordId)}
-      onPlayScene={(photoId) => console.log('Play scene:', photoId)}
-      onPauseScene={() => console.log('Pause scene')}
-      onStopScene={() => console.log('Stop scene')}
     />
   )
 }

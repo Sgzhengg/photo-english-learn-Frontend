@@ -7,9 +7,6 @@ interface SceneSentenceProps {
   photo: Photo
   currentWordIndex: number
   isPlaying: boolean
-  onPlay?: (photoId: string) => void
-  onPause?: () => void
-  onStop?: () => void
 }
 
 /**
@@ -41,9 +38,6 @@ export function SceneSentence({
   photo,
   currentWordIndex,
   isPlaying,
-  onPlay,
-  onPause,
-  onStop,
 }: SceneSentenceProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [isPlayingOriginal, setIsPlayingOriginal] = useState(false)
@@ -54,7 +48,7 @@ export function SceneSentence({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const recordingTimeoutRef = useRef<number | null>(null)
 
   // 清理录音定时器
   useEffect(() => {

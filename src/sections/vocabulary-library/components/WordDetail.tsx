@@ -3,6 +3,7 @@ import type { Word } from '@/../product/sections/vocabulary-library/types'
 
 interface WordDetailProps {
   word: Word
+  tags?: string[]
   onBack?: () => void
   onPlayPronunciation?: (wordId: string) => void
   onStartPractice?: (wordId: string) => void
@@ -11,6 +12,7 @@ interface WordDetailProps {
 
 export function WordDetail({
   word,
+  tags: _tags,
   onBack,
   onPlayPronunciation,
   onStartPractice,

@@ -12,9 +12,6 @@ export function PhotoCaptureResult({
   onPlayWordPronunciation,
   onSaveWord,
   onUnsaveWord,
-  onPlayScene,
-  onPauseScene,
-  onStopScene,
 }: PhotoCaptureProps) {
   // 拍照/处理中状态
   if (isCapturing || !currentPhoto || currentPhoto.status === 'processing') {
@@ -116,9 +113,6 @@ export function PhotoCaptureResult({
           photo={currentPhoto}
           currentWordIndex={currentWordIndex}
           isPlaying={isPlaying}
-          onPlay={onPlayScene}
-          onPause={onPauseScene}
-          onStop={onStopScene}
         />
       )}
     </div>
