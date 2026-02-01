@@ -77,10 +77,10 @@ class ApiClient {
           });
           return await this.handleResponse<T>(retryResponse);
         }
-        // If refresh failed, clear tokens and redirect to login
-        this.clearTokens();
-        window.location.href = '/login';
-        return { success: false, error: 'Session expired. Please login again.' };
+        // DEV MODE: 不跳转到登录页，静默失败
+        // this.clearTokens();
+        // window.location.href = '/login';
+        return { success: false, error: 'Authentication failed (dev mode).' };
       }
 
       return await this.handleResponse<T>(response);

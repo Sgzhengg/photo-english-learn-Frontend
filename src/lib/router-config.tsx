@@ -29,16 +29,16 @@ const SettingsPage = lazy(() => import('@/components/settings/SettingsPage').the
 
 // -----------------------------------------------------------------------------
 // Route Loader - Check authentication
+// DEV MODE: 跳过认证检查，直接进入应用
 // -----------------------------------------------------------------------------
 
 const protectedRouteLoader = () => {
-  const token = localStorage.getItem('access_token');
-
-  if (!token) {
-    return redirect('/login');
-  }
-
-  return null;
+  // TODO: 生产环境需要恢复认证检查
+  // const token = localStorage.getItem('access_token');
+  // if (!token) {
+  //   return redirect('/login');
+  // }
+  return null; // 暂时跳过认证
 };
 
 // -----------------------------------------------------------------------------
@@ -47,16 +47,16 @@ const protectedRouteLoader = () => {
 
 export const router = createBrowserRouter([
   // Redirect root to appropriate page
+  // DEV MODE: 直接跳转到拍照页面，无需登录
   {
     path: '/',
     loader: () => {
-      const token = localStorage.getItem('access_token');
-
-      if (!token) {
-        return redirect('/login');
-      }
-
-      // User is authenticated, redirect to photo-capture (main page)
+      // TODO: 生产环境恢复认证检查
+      // const token = localStorage.getItem('access_token');
+      // if (!token) {
+      //   return redirect('/login');
+      // }
+      // 直接跳转到拍照页面
       return redirect('/app/photo-capture');
     },
   },
