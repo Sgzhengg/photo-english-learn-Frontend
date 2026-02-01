@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Volume2, Check, X, SkipForward, RotateCcw, Eye, EyeOff } from 'lucide-react';
-import vocabularyData from '@/../product/sections/vocabulary-library/data.json';
+import { vocabularyApi } from '@/lib/api';
 import type { Word } from '@/../product/sections/vocabulary-library/types';
 
 // 题目类型
@@ -35,21 +35,28 @@ export function SingleWordPracticePage() {
 
   // 加载单词数据并生成题目
   useEffect(() => {
-    if (!wordId) {
-      navigate('/app/vocabulary');
-      return;
-    }
+    const fetchWord = async () => {
+      if (!wordId) {
+        navigate('/app/vocabulary');
+        return;
+      }
 
-    const words = vocabularyData.words as Word[];
-    const foundWord = words.find(w => w.id === wordId);
+      try {
+        const result = await vocabularyApi.getWord(wordId);
+        if (result.success && result.data) {
+          setWord(result.data);
+          generateQuestions(result.data);
+        } else {
+          console.error('Failed to fetch word:', result.error);
+          navigate('/app/vocabulary');
+        }
+      } catch (error) {
+        console.error('Error fetching word:', error);
+        navigate('/app/vocabulary');
+      }
+    };
 
-    if (!foundWord) {
-      navigate('/app/vocabulary');
-      return;
-    }
-
-    setWord(foundWord);
-    generateQuestions(foundWord);
+    fetchWord();
   }, [wordId, navigate]);
 
   // 根据单词生成练习题目

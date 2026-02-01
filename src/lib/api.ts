@@ -2,13 +2,7 @@
 // PhotoEnglish - API Service Layer
 // =============================================================================
 
-// Use mock API only when explicitly enabled
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API === 'true';
-
 const API_BASE_URL = 'https://photo-english-learn-api-gateway.zeabur.app';
-
-// Import mock API functions (setMockUserId is no longer needed)
-import { mockAuthApi, mockUserApi } from './mock-api';
 
 // Import anonymous user management
 import { getAnonymousUserHeaders } from './anonymous-user';
@@ -220,11 +214,6 @@ export const authApi = {
    * POST /auth/login
    */
   login: async (emailOrPhone: string, password: string, keepLoggedIn: boolean) => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.login(emailOrPhone, password);
-      // User is saved automatically in mockApi.login()
-      return { success: true, data: result };
-    }
     return api.post<AuthTokens & { user: import('@/types').User }>('/auth/login', {
       emailOrPhone,
       password,
@@ -241,11 +230,6 @@ export const authApi = {
     verificationCode: string;
     password: string;
   }) => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.register(data.emailOrPhone, data.verificationCode, data.password);
-      // User is saved automatically in mockApi.register()
-      return { success: true, data: result };
-    }
     return api.post<AuthTokens & { user: import('@/types').User }>('/auth/register', data);
   },
 
@@ -254,10 +238,6 @@ export const authApi = {
    * POST /auth/send-code
    */
   sendVerificationCode: async (emailOrPhone: string) => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.sendVerificationCode(emailOrPhone);
-      return { success: true, data: result };
-    }
     return api.post<{ message: string }>('/auth/send-code', { emailOrPhone });
   },
 
@@ -266,10 +246,6 @@ export const authApi = {
    * POST /auth/refresh
    */
   refreshToken: async (refreshToken: string) => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.refreshToken(refreshToken);
-      return { success: true, data: result };
-    }
     return api.post<AuthTokens>('/auth/refresh', { refreshToken });
   },
 
@@ -278,10 +254,6 @@ export const authApi = {
    * GET /auth/me
    */
   getCurrentUser: async () => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.getCurrentUser();
-      return { success: true, data: result };
-    }
     return api.get<import('@/types').User>('/auth/me');
   },
 
@@ -294,10 +266,6 @@ export const authApi = {
     verificationCode: string;
     newPassword: string;
   }) => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.resetPassword(data.emailOrPhone, data.verificationCode, data.newPassword);
-      return { success: true, data: result };
-    }
     return api.post<{ message: string }>('/auth/reset-password', data);
   },
 
@@ -306,10 +274,6 @@ export const authApi = {
    * POST /auth/logout
    */
   logout: async () => {
-    if (USE_MOCK_API) {
-      const result = await mockAuthApi.logout();
-      return { success: true, data: result };
-    }
     return api.post<{ message: string }>('/auth/logout');
   },
 };
@@ -327,10 +291,6 @@ export const userApi = {
     englishLevel: 'beginner' | 'intermediate' | 'advanced';
     dailyGoal: '10' | '20' | '30' | '50';
   }) => {
-    if (USE_MOCK_API) {
-      const result = await mockUserApi.updatePreferences(preferences);
-      return { success: true, data: result };
-    }
     return api.patch<import('@/types').User>('/user/preferences', preferences);
   },
 
@@ -342,10 +302,6 @@ export const userApi = {
     nickname?: string;
     avatar?: string;
   }) => {
-    if (USE_MOCK_API) {
-      const result = await mockUserApi.updateProfile(data);
-      return { success: true, data: result };
-    }
     return api.patch<import('@/types').User>('/user/profile', data);
   },
 
@@ -357,10 +313,6 @@ export const userApi = {
     currentPassword: string;
     newPassword: string;
   }) => {
-    if (USE_MOCK_API) {
-      const result = await mockUserApi.changePassword(data.currentPassword, data.newPassword);
-      return { success: true, data: result };
-    }
     return api.post<{ message: string }>('/user/change-password', data);
   },
 };

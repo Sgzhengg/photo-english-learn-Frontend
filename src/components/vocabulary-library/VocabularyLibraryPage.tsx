@@ -8,7 +8,6 @@ import { VocabularyList } from '@/sections/vocabulary-library/components/Vocabul
 import { WordDetail } from '@/sections/vocabulary-library/components/WordDetail';
 import { vocabularyApi } from '@/lib/api';
 import { adaptUserWordsToWords, extractUserWordId } from '@/lib/vocabulary-adapter';
-import vocabularyData from '@/../product/sections/vocabulary-library/data.json';
 
 // Use the types from the product design
 import type { Word, Tag, ViewMode, SortOption } from '@/../product/sections/vocabulary-library/types';
@@ -25,37 +24,40 @@ export function VocabularyLibraryPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // TODO: Replace with real API call
-  // Currently using mock data as fallback
+  // Words and tags from API
   const [words, setWords] = useState<Word[]>([]);
-  const tags = vocabularyData.tags as Tag[];
+  const [tags, setTags] = useState<Tag[]>([]);
 
-  // Fetch words from API on mount
+  // Fetch words and tags from API on mount
   useEffect(() => {
-    const fetchWords = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const result = await vocabularyApi.getWords();
 
-        if (result.success && result.data) {
-          // Adapt backend response to frontend format
-          const adaptedWords = adaptUserWordsToWords(result.data.words || []);
+        // Fetch words
+        const wordsResult = await vocabularyApi.getWords();
+        if (wordsResult.success && wordsResult.data) {
+          const adaptedWords = adaptUserWordsToWords(wordsResult.data.words || []);
           setWords(adaptedWords);
         } else {
-          // Fallback to mock data if API fails
-          console.warn('Failed to fetch words from API, using mock data:', result.error);
-          setWords(vocabularyData.words as Word[]);
+          console.error('Failed to fetch words:', wordsResult.error);
+        }
+
+        // Fetch tags
+        const tagsResult = await vocabularyApi.getTags();
+        if (tagsResult.success && tagsResult.data) {
+          setTags(tagsResult.data);
+        } else {
+          console.error('Failed to fetch tags:', tagsResult.error);
         }
       } catch (error) {
-        console.error('Error fetching words:', error);
-        // Fallback to mock data
-        setWords(vocabularyData.words as Word[]);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchWords();
+    fetchData();
   }, []);
 
   // Filter and sort words
