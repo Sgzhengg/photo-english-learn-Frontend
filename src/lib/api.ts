@@ -328,9 +328,13 @@ export const photoApi = {
    */
   recognize: async (formData: FormData) => {
     const token = localStorage.getItem('access_token');
+    const anonHeaders = getAnonymousUserHeaders();
+    const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+    Object.assign(headers, anonHeaders);
+
     const response = await fetch(`${API_BASE_URL}/photo/recognize`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      headers,
       body: formData, // Don't set Content-Type, let browser set it with boundary
     });
 
@@ -364,8 +368,16 @@ export const photoApi = {
 
 export const vocabularyApi = {
   /**
+   * Lookup word and get its word_id
+   * GET /words/lookup/:word (routes to word-service /lookup/:word)
+   * If word doesn't exist in database, it will be fetched from dictionary API
+   */
+  lookupWord: (word: string) =>
+    api.get<any>(`/words/lookup/${encodeURIComponent(word)}`),
+
+  /**
    * Get user's vocabulary library
-   * GET /vocabulary
+   * GET /words/list (routes to word-service /list)
    */
   getWords: (_params?: {
     search?: string;
@@ -374,42 +386,49 @@ export const vocabularyApi = {
     page?: number;
     limit?: number;
   }) =>
-    api.get<{ words: import('@/types').Word[]; total: number }>('/vocabulary'),
+    api.get<{ words: import('@/types').Word[]; total: number }>('/words/list'),
+
+  /**
+   * Add word to vocabulary
+   * POST /words/add (routes to word-service /add)
+   */
+  addWord: (wordId: number, sceneId?: number) =>
+    api.post<import('@/types').Word>('/words/add', { word_id: wordId, scene_id: sceneId }),
 
   /**
    * Get word details
-   * GET /vocabulary/:wordId
+   * GET /words/:wordId
    */
   getWord: (wordId: string) =>
-    api.get<import('@/types').Word>(`/vocabulary/${wordId}`),
+    api.get<import('@/types').Word>(`/words/${wordId}`),
 
   /**
    * Create tag
-   * POST /vocabulary/tags
+   * POST /words/tags
    */
   createTag: (name: string, color?: string) =>
-    api.post<import('@/types').Tag>('/vocabulary/tags', { name, color }),
+    api.post<import('@/types').Tag>('/words/tags', { name, color }),
 
   /**
    * Get user's tags
-   * GET /vocabulary/tags
+   * GET /words/tags
    */
   getTags: () =>
-    api.get<import('@/types').Tag[]>('/vocabulary/tags'),
+    api.get<import('@/types').Tag[]>('/words/tags'),
 
   /**
    * Update word tags
-   * PATCH /vocabulary/:wordId/tags
+   * PATCH /words/:wordId/tag
    */
   updateWordTags: (wordId: string, tags: string[]) =>
-    api.patch<import('@/types').Word>(`/vocabulary/${wordId}/tags`, { tags }),
+    api.patch<import('@/types').Word>(`/words/${wordId}/tag`, { tags }),
 
   /**
    * Delete word
-   * DELETE /vocabulary/:wordId
+   * DELETE /words/:wordId
    */
   deleteWord: (wordId: string) =>
-    api.delete<{ message: string }>(`/vocabulary/${wordId}`),
+    api.delete<{ message: string }>(`/words/${wordId}`),
 };
 
 // -----------------------------------------------------------------------------
@@ -434,9 +453,13 @@ export const practiceApi = {
     formData.append('is_correct', String(isCorrect));
 
     const token = localStorage.getItem('access_token');
+    const anonHeaders = getAnonymousUserHeaders();
+    const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+    Object.assign(headers, anonHeaders);
+
     const response = await fetch(`${API_BASE_URL}/practice/review/${wordId}?is_correct=${isCorrect}`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      headers,
     });
 
     const json = await response.json();
@@ -510,9 +533,13 @@ export const asrApi = {
     formData.append('engine', engine);
 
     const token = localStorage.getItem('access_token');
+    const anonHeaders = getAnonymousUserHeaders();
+    const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+    Object.assign(headers, anonHeaders);
+
     const response = await fetch(`${API_BASE_URL}/asr/recognize`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      headers,
       body: formData,
     });
 
@@ -536,9 +563,13 @@ export const asrApi = {
     formData.append('engine', engine);
 
     const token = localStorage.getItem('access_token');
+    const anonHeaders = getAnonymousUserHeaders();
+    const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+    Object.assign(headers, anonHeaders);
+
     const response = await fetch(`${API_BASE_URL}/asr/recognize-url`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      headers,
       body: formData,
     });
 
@@ -562,9 +593,13 @@ export const asrApi = {
     formData.append('language', language);
 
     const token = localStorage.getItem('access_token');
+    const anonHeaders = getAnonymousUserHeaders();
+    const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+    Object.assign(headers, anonHeaders);
+
     const response = await fetch(`${API_BASE_URL}/asr/evaluate-pronunciation`, {
       method: 'POST',
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      headers,
       body: formData,
     });
 

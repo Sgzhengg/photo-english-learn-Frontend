@@ -6,7 +6,7 @@ import { useState, useRef } from 'react';
 import { Camera } from 'lucide-react';
 import { PhotoCaptureResult } from '@/sections/photo-capture/components/PhotoCaptureResult';
 import type { Photo } from '@/sections/photo-capture/types';
-import { photoApi } from '@/lib/api';
+import { photoApi, vocabularyApi } from '@/lib/api';
 
 export function PhotoCapturePage() {
   const [currentPhoto, setCurrentPhoto] = useState<Photo | null>(null);
@@ -87,20 +87,52 @@ export function PhotoCapturePage() {
   const handleSaveWord = async (wordId: string) => {
     if (!currentPhoto) return;
 
-    // Update local state
-    setCurrentPhoto({
-      ...currentPhoto,
-      recognizedWords: currentPhoto.recognizedWords.map(word =>
-        word.id === wordId ? { ...word, isSaved: true } : word
-      ),
-    });
+    // Find the word to get its English word text
+    const word = currentPhoto.recognizedWords.find(w => w.id === wordId);
+    if (!word) return;
+
+    try {
+      // Step 1: Lookup the word to get the real word_id from database
+      console.log('Looking up word:', word.word);
+      const lookupResult = await vocabularyApi.lookupWord(word.word);
+
+      if (!lookupResult.success || !lookupResult.data) {
+        console.error('Failed to lookup word:', lookupResult.error);
+        alert(`查询单词失败: ${lookupResult.error || '未知错误'}`);
+        return;
+      }
+
+      const realWordId = lookupResult.data.word_id;
+      console.log('Found word_id:', realWordId);
+
+      // Step 2: Add the word to vocabulary using the real word_id
+      const addResult = await vocabularyApi.addWord(realWordId);
+
+      if (addResult.success) {
+        // Update local state
+        setCurrentPhoto({
+          ...currentPhoto,
+          recognizedWords: currentPhoto.recognizedWords.map(w =>
+            w.id === wordId ? { ...w, isSaved: true } : w
+          ),
+        });
+        console.log('Word saved successfully');
+      } else {
+        console.error('Failed to save word:', addResult.error);
+        alert(`保存失败: ${addResult.error || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('Save word error:', error);
+      alert(`保存失败: ${error instanceof Error ? error.message : '网络错误'}`);
+    }
   };
 
   // Handle unsave word
   const handleUnsaveWord = async (wordId: string) => {
     if (!currentPhoto) return;
 
-    // Update local state
+    // Note: For MVP, we just update local state
+    // In production, you would need to call the delete API with the user_word ID
     setCurrentPhoto({
       ...currentPhoto,
       recognizedWords: currentPhoto.recognizedWords.map(word =>
